@@ -166,17 +166,17 @@ def MCTS(Iterations_per_move, moves, GA_iterations,
                 for J in range(0, 2*(move_number+1), 2):
                     if J == 0:
                         next_gen_conc = next_gen_conc_original
-                        next_gen_conc, median_fitness, max_fitness = \
-                            perform_iteration(
-                                          current_gen_spectra,
-                                          next_gen_conc, x_test, 50,
-                                          n_samples, move_array[row, J],
-                                          move_array[row, J+1])
-                        simulated_spectra, surrogate_score = \
-                            perform_Surrogate_Prediction(
-                                                     next_gen_conc,
-                                                     conc_array_actual,
-                                                     spectra_array_actual)
+                    next_gen_conc, median_fitness, max_fitness = \
+                        perform_iteration(
+                                      current_gen_spectra,
+                                      next_gen_conc, x_test, 50,
+                                      n_samples, move_array[row, J],
+                                      move_array[row, J+1])
+                    simulated_spectra, surrogate_score = \
+                        perform_Surrogate_Prediction(
+                                                 next_gen_conc,
+                                                 conc_array_actual,
+                                                 spectra_array_actual)
                     ss = simulated_spectra.T
                     simulated_spectra = MinMaxScaler().fit(ss).transform(ss).T
                     desired = MinMaxScaler().fit(x_test).transform(x_test).T
