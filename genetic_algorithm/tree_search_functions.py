@@ -1,18 +1,18 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler 
 from sklearn.gaussian_process import GaussianProcessRegressor
 from GA_functions import fitness, GA_algorithm_unnormalized, \
                          perform_iteration, set_seed
 
 
-def zeroth_iteration(conc_array, spectra_array, x_test):
+def zeroth_iteration(**kwargs):
     '''
     Performs the zeroth iteration.
     Inputs:
     - conc_array: 2d array of the first concentration values to test
     - spectra_array: 2d array of the spectra values measured from conc_array
-    - x_test: 1d array of the desired spectra
+    - desired: 1d array of the desired spectra
     Outputs:
     - next_gen_conc: 2d array of the next concentrations to test
     - current_gen_spectra: same thing as spectra_array
@@ -22,28 +22,60 @@ def zeroth_iteration(conc_array, spectra_array, x_test):
     - mutation_rate_list: list of the mutation rates
     - mutation_rate_list_2: list of the second type of mutation rate
     '''
+    
+    if 'conc_array' and 'spectra_array' and 'desired_spectra' in kwargs.keys() and 'single_data' not in kwargs.keys():
+        conc_array = kwargs['conc_array']
+        spectra_array = kwargs['spectra_array']
+        desired_spectra = kwargs['desired_spectra']
+        setting = 1
+    elif 'single_data' and 'single_desired' and 'conc_array' in kwargs.keys() and 'spectra_array' not in kwargs.keys():
+        single_data = kwargs['single_data']
+        single_desired = kwargs['single_desired']
+        conc_array = kwargs['conc_array']
+        setting = 2 
+    elif 'single_data' and 'spectra_array' in kwargs.keys():
+        conc_array = kwargs['conc_array']
+        spectra_array = kwargs['spectra_array']
+        desired_spectra = kwargs['desired_spectra']
+        single_data = kwargs['single_data']
+        single_desired = kwargs['single_desired']
+        setting = 3
+  
     seed = np.random.randint(0, 100)
     set_seed(seed)
-    spectra = spectra_array
-    desired = x_test
-    spectra = spectra.T
-    spectra = MinMaxScaler().fit(spectra).transform(spectra).T
-    desired = MinMaxScaler().fit(x_test).transform(x_test).T
-    desired = desired.reshape(1, -1)[0].reshape(-1, 1).T
+    # spectra = spectra.T
+    # spectra = MinMaxScaler().fit(spectra).transform(spectra).T
+    # desired = MinMaxScaler().fit(x_test).transform(x_test).T
+    # desired = desired.reshape(1, -1)[0].reshape(-1, 1).T
     median_fitness_list = []
     max_fitness_list = []
     iteration = []
     mutation_rate_list = []
     fitness_multiplier_list = []
     # Calculate Fitness
-    a, median_fitness, max_fitness = fitness(spectra, conc_array, desired)
+
+    if setting == 1:
+        a, median_fitness, max_fitness = fitness(spectra = spectra_array, 
+                                                 conc = conc_array, 
+                                                 desired_spectra = desired_spectra)
+        current_gen_spectra = spectra_array
+    elif setting == 2:
+        a, median_fitness, max_fitness = fitness(single_data = single_data, 
+                                                 conc = conc_array, 
+                                                 single_desired = single_desired)
+    elif setting == 3:
+        a, median_fitness, max_fitness = fitness(spectra = spectra_array, 
+                                                 conc = conc_array, 
+                                                 desired_spectra = desired_spectra,
+                                                 single_data = single_data,
+                                                 single_desired = single_desired)
+        
     # Appending to list
     i = 0
     median_fitness_list.append(median_fitness)
     max_fitness_list.append(max_fitness)
     iteration.append(i)
     next_gen_conc = conc_array
-    current_gen_spectra = spectra_array
     # Plotting
     plt.scatter(iteration, median_fitness_list, label='median fitness')
     plt.scatter(iteration, max_fitness_list, label='max fitness')
@@ -52,11 +84,51 @@ def zeroth_iteration(conc_array, spectra_array, x_test):
     plt.show()
     print('The max fitness is:', max_fitness)
     print('The median fitness is:', median_fitness)
-    return next_gen_conc, current_gen_spectra, median_fitness_list, \
-        max_fitness_list, iteration, mutation_rate_list, \
-        fitness_multiplier_list
+    
+    if setting == 1:
+            output_dict = {'next_gen_conc':next_gen_conc,
+                   'current_gen_spectra':current_gen_spectra,
+                   'median_fitness_list':median_fitness_list,
+                   'max_fitness_list':max_fitness_list,
+                   'iteration':iteration,
+                   'mutation_rate_list':mutation_rate_list,
+                   'mutation_rate_2_list':fitness_multiplier_list,
+                   'conc_array':conc_array,
+                   'spectra_array':spectra_array,
+                   'desired_spectra':desired_spectra,
+                   'conc_array_actual': next_gen_conc,
+                   'spectra_array_actual': current_gen_spectra}
+    elif setting == 2:
+            output_dict = {'next_gen_conc':next_gen_conc,
+                   'single_data':single_data,
+                   'median_fitness_list':median_fitness_list,
+                   'max_fitness_list':max_fitness_list,
+                   'iteration':iteration,
+                   'mutation_rate_list':mutation_rate_list,
+                   'mutation_rate_2_list':fitness_multiplier_list,
+                   'conc_array':conc_array,
+                   'single_desired':single_desired,
+                   'conc_array_actual': next_gen_conc,
+                   'single_data_actual': single_data}
+    elif setting == 3:
+            output_dict = {'next_gen_conc':next_gen_conc,
+                   'current_gen_spectra':current_gen_spectra,
+                   'single_data':single_data,
+                   'single_desired':single_desired,
+                   'median_fitness_list':median_fitness_list,
+                   'max_fitness_list':max_fitness_list,
+                   'iteration':iteration,
+                   'mutation_rate_list':mutation_rate_list,
+                   'mutation_rate_2_list':fitness_multiplier_list,
+                   'conc_array':conc_array,
+                   'spectra_array':spectra_array,
+                   'desired_spectra':desired_spectra,
+                   'conc_array_actual': next_gen_conc,
+                   'spectra_array_actual': current_gen_spectra,
+                   'single_data_actual': single_data}
+    return output_dict
 
-
+    
 def perform_Surrogate_Prediction(next_gen_conc,
                                  conc_array_actual,
                                  spectra_array_actual):
@@ -83,11 +155,47 @@ def perform_Surrogate_Prediction(next_gen_conc,
     return spectra_prediction, score
 
 
-def MCTS(Iterations_per_move, moves, GA_iterations,
-         current_gen_spectra,
-         next_gen_conc, x_test, conc_array_actual,
-         spectra_array_actual,
-         seed, n_samples):
+def MCTS(MCTS_dict):
+    if 'current_gen_spectra' and 'spectra_array_actual' in MCTS_dict.keys() and 'single_data' not in MCTS_dict.keys():
+        Iterations_per_move = MCTS_dict['Iterations']
+        moves = MCTS_dict['moves']
+        GA_iterations = MCTS_dict['GA_iterations']
+        n_samples = MCTS_dict['n_samples']
+        current_gen_spectra = MCTS_dict['current_gen_spectra']
+        next_gen_conc = MCTS_dict['next_gen_conc']
+        desired_spectra = MCTS_dict['desired_spectra']
+        conc_array_actual = MCTS_dict['conc_array_actual']
+        spectra_array_actual = MCTS_dict['spectra_array_actual']
+        seed = MCTS_dict['seed']
+        setting = 1
+    elif 'single_data' and 'single_desired' in MCTS_dict.keys() and 'current_gen_spectra' not in MCTS_dict.keys():
+        Iterations_per_move = MCTS_dict['Iterations']
+        moves = MCTS_dict['moves']
+        GA_iterations = MCTS_dict['GA_iterations']
+        n_samples = MCTS_dict['n_samples']
+        single_data = MCTS_dict['single_data']
+        next_gen_conc = MCTS_dict['next_gen_conc']
+        single_desired = MCTS_dict['single_desired']
+        conc_array_actual = MCTS_dict['conc_array_actual']
+        single_data_actual = MCTS_dict['single_data_actual']
+        seed = MCTS_dict['seed']
+        setting = 2
+    elif 'single_data' and 'single_desired' and 'current_gen_spectra' in MCTS_dict.keys():
+        Iterations_per_move = MCTS_dict['Iterations']
+        moves = MCTS_dict['moves']
+        GA_iterations = MCTS_dict['GA_iterations']
+        n_samples = MCTS_dict['n_samples']
+        single_data = MCTS_dict['single_data']
+        desired_spectra = MCTS_dict['desired_spectra']
+        conc_array_actual = MCTS_dict['conc_array_actual']
+        single_data_actual = MCTS_dict['single_data_actual']
+        current_gen_spectra = MCTS_dict['current_gen_spectra']
+        next_gen_conc = MCTS_dict['next_gen_conc']
+        single_desired = MCTS_dict['single_desired']
+        single_data_actual = MCTS_dict['single_data_actual']
+        seed = MCTS_dict['seed']
+        setting = 3
+
     '''Performs another an additional iteration. Use this after
     performing the 0th iteration with the function zeroth_iteration
       Inputs:
@@ -166,24 +274,75 @@ def MCTS(Iterations_per_move, moves, GA_iterations,
                 for J in range(0, 2*(move_number+1), 2):
                     if J == 0:
                         next_gen_conc = next_gen_conc_original
-                    next_gen_conc, median_fitness, max_fitness = \
-                        perform_iteration(
-                                      current_gen_spectra,
-                                      next_gen_conc, x_test, 50,
-                                      n_samples, move_array[row, J],
-                                      move_array[row, J+1])
-                    simulated_spectra, surrogate_score = \
-                        perform_Surrogate_Prediction(
-                                                 next_gen_conc,
-                                                 conc_array_actual,
-                                                 spectra_array_actual)
-                    ss = simulated_spectra.T
-                    simulated_spectra = MinMaxScaler().fit(ss).transform(ss).T
-                    desired = MinMaxScaler().fit(x_test).transform(x_test).T
-                    desired = desired.reshape(1, -1)[0].reshape(-1, 1).T
-                    conc_fitness, median_fitness, max_fitness = fitness(
-                        simulated_spectra, next_gen_conc, desired)
-                    best_conc = conc_fitness[-1, simulated_spectra.shape[1]:]
+                    if setting == 1:     
+                        loaded_dict = {'mutation_rate':move_array[row, J],
+                                       'mutation_rate_2':move_array[row, J+1],
+                                       'n_parents':50,
+                                       'n_samples':n_samples,
+                                       'next_gen_conc':next_gen_conc,
+                                       'desired_spectra':desired_spectra,
+                                       'current_gen_spectra':current_gen_spectra}
+                        next_gen_conc, median_fitness, max_fitness = \
+                            perform_iteration(loaded_dict)
+                    elif setting == 2:
+                        loaded_dict = {'mutation_rate':move_array[row, J],
+                                       'mutation_rate_2':move_array[row, J+1],
+                                       'n_parents':50,
+                                       'n_samples':n_samples,
+                                       'next_gen_conc':next_gen_conc,
+                                       'single_desired':single_desired,
+                                       'single_data':single_data}
+                        next_gen_conc, median_fitness, max_fitness = \
+                            perform_iteration(loaded_dict)
+                    elif setting == 3:
+                        loaded_dict = {'mutation_rate':move_array[row, J],
+                                       'mutation_rate_2':move_array[row, J+1],
+                                       'n_parents':50,
+                                       'n_samples':n_samples,
+                                       'next_gen_conc':next_gen_conc,
+                                       'single_desired':single_desired,
+                                       'single_data':single_data,
+                                       'desired_spectra':desired_spectra,
+                                       'current_gen_spectra':current_gen_spectra}
+                        next_gen_conc, median_fitness, max_fitness = \
+                            perform_iteration(loaded_dict)
+                        
+                    if setting == 1:
+                        ############################## NORMALIZATION #################################################
+                        spectra_array_actual = spectra_array_actual.T
+                        spectra_array_actual = MinMaxScaler().fit(spectra_array_actual).transform(spectra_array_actual).T
+                        ##############################################################################################
+                        simulated_spectra, surrogate_score = \
+                            perform_Surrogate_Prediction(
+                                                     next_gen_conc,
+                                                     conc_array_actual,
+                                                     spectra_array_actual)
+                        ############################## NORMALIZATION ########################################################
+                        simulated_spectra = simulated_spectra.T
+                        simulated_spectra = MinMaxScaler().fit(simulated_spectra).transform(simulated_spectra).T
+                        ######################################################################################################
+                        desired_spectra = desired_spectra.reshape(1,-1)
+                        conc_fitness, median_fitness, max_fitness = fitness(
+                            spectra = simulated_spectra, conc = next_gen_conc, desired_spectra = desired_spectra)
+                        best_conc = conc_fitness[-1, simulated_spectra.shape[1]:]
+
+                    elif setting == 2:
+                        simulated_single_data, surrogate_score = \
+                            perform_Surrogate_Prediction(
+                                                         next_gen_conc,
+                                                         conc_array_actual,
+                                                         single_data_actual)
+                        conc_fitness, median_fitness, max_fitness = fitness(single_data = single_data, 
+                                                                     conc = next_gen_conc,
+                                                                     single_desired = single_desired)
+                        best_conc = conc_fitness[-1, simulated_single_data.shape[1]:]
+  
+                    elif setting == 3:
+                        simulated_single_data, surrogate_score = \
+                            perform_Surrogate_Prediction(
+                                                     next_gen_conc,
+                                                     conc_array_actual,
+                                                     single_data_actual)
                     conc_fitness_list.append(best_conc)
                     Fitness_move_1.append(max_fitness)
                     conc_fitness_array = np.asarray(conc_fitness_list)
@@ -224,17 +383,15 @@ def MCTS(Iterations_per_move, moves, GA_iterations,
     max_fitness = best_play[0][-1]
     mutation_rate = best_play[0][0]
     fitness_multiplier = best_play[0][1]
+    
+    
     return mutation_rate, fitness_multiplier, best_play, \
         best_move_number, max_fitness, surrogate_score, \
-        desired, current_gen_spectra, best_conc_array, \
+        best_conc_array, \
         dictionary_of_moves
 
 
-def nth_iteration(Iterations, Moves_ahead, GA_iterations, n_samples,
-                  current_gen_spectra, next_gen_conc, x_test,
-                  conc_array_actual, spectra_array_actual, seed,
-                  median_fitness_list, max_fitness_list,
-                  iteration, mutation_rate_list, fitness_multiplier_list):
+def nth_iteration(loaded_dict, **kwargs):
     '''
        Performs another an additional iteration. Use this after performing
        the 0th iteration with the function zeroth_iteration.
@@ -285,38 +442,122 @@ def nth_iteration(Iterations, Moves_ahead, GA_iterations, n_samples,
       - next_gen_conc: A 2d array of the next generation of
       concentrations to be tested using uv-vis.
     '''
+    seed = kwargs['seed']
+    Iterations = kwargs['Iterations']
+    Moves_ahead = kwargs['Moves_ahead']
+    GA_iterations = kwargs['GA_iterations']
+    n_samples = kwargs['n_samples']        
     set_seed(seed)
-    mutation_rate, fitness_multiplier, best_move, best_move_turn, \
-        max_fitness, surrogate_score, desired_1, current_gen_spectra_1, \
+    
+    loaded_dict.update({'Iterations':Iterations})
+    loaded_dict.update({'moves':Moves_ahead})
+    loaded_dict.update({'GA_iterations':GA_iterations})
+    loaded_dict.update({'seed':seed})
+    loaded_dict.update({'n_samples':n_samples})
+    
+    mutation_rate, mutation_rate_2, best_move, best_move_turn, \
+        max_fitness, surrogate_score, \
         best_conc_array, \
-        dictionary_of_moves = MCTS(Iterations, Moves_ahead,
-                                   GA_iterations, current_gen_spectra,
-                                   next_gen_conc, x_test, conc_array_actual,
-                                   spectra_array_actual, seed, n_samples)
+        dictionary_of_moves = MCTS(loaded_dict)
     print('The best move has a fitness value of', max_fitness)
     print('The best move occurs in', best_move_turn, 'turns.')
     print()
     print('The surrogate model has a score of:', surrogate_score)
     print()
+    mutation_rate_list = loaded_dict['mutation_rate_list']
+    mutation_rate_2_list = loaded_dict['mutation_rate_2_list']                                 
     mutation_rate_list.append(mutation_rate)
-    fitness_multiplier_list.append(fitness_multiplier)
-    current_gen_spectra = current_gen_spectra.T
-    current_gen_spectra = MinMaxScaler().fit(current_gen_spectra). \
-        transform(current_gen_spectra).T
-    next_gen_conc, median_fitness, max_fitness = perform_iteration(
-        current_gen_spectra, next_gen_conc, x_test, 20,
-        n_samples, mutation_rate, fitness_multiplier)
+    mutation_rate_2_list.append(mutation_rate_2)
+    loaded_dict.update({'mutation_rate':mutation_rate})
+    loaded_dict.update({'mutation_rate_2':mutation_rate_2})
+    loaded_dict.update({'mutation_rate_list':mutation_rate_list})
+    loaded_dict.update({'mutation_rate_2_list':mutation_rate_2_list})
+    
+    ###################### NORMALIZATION #############################
+    #current_gen_spectra = loaded_dict['current_gen_spectra']
+    #current_gen_spectra = current_gen_spectra.T
+    #current_gen_spectra = MinMaxScaler().fit(current_gen_spectra). \
+    #    transform(current_gen_spectra).T
+    #loaded_dict.update({'current_gen_spectra':current_gen_spectra})
+    ###################################################################
+    
+    if 'current_gen_spectra' and 'desired_spectra' in loaded_dict.keys() and 'single_data' not in loaded_dict.keys():
+        setting = 1
+        next_gen_conc, median_fitness, max_fitness = perform_iteration(loaded_dict)
+    elif 'single_data' and 'single_desired' in loaded_dict.keys() and 'current_gen_spectra' not in loaded_dict.keys():
+        setting = 2
+        next_gen_conc, median_fitness, max_fitness = perform_iteration(loaded_dict)
+    elif 'single_data' and 'single_desired' and 'current_gen_spectra' in loaded_dict.keys():
+        setting = 3
+        next_gen_conc, median_fitness, max_fitness = perform_iteration(loaded_dict)
+
     best_conc_array = \
         best_conc_array[np.argsort(best_conc_array[:, -1])][-1, :]
     print(next_gen_conc)
-    return mutation_rate, fitness_multiplier, mutation_rate_list, \
-        fitness_multiplier_list, best_move, best_move_turn, \
-        max_fitness, surrogate_score, next_gen_conc, \
-        best_conc_array, dictionary_of_moves
+    loaded_dict.update({'next_gen_conc':next_gen_conc})
+    loaded_dict.update({'median_fitness':median_fitness})
+    loaded_dict.update({'max_fitness':max_fitness})
+    loaded_dict.update({'best_conc_array':best_conc_array})
+    loaded_dict.update({'best_move':best_move})
+    loaded_dict.update({'best_move_turn':best_move_turn})
+    loaded_dict.update({'dictionary_of_moves':dictionary_of_moves})
+    
+#    if setting == 1:
+#        loaded_dict.update({current_gen_spectra})
+        
+#         output_dict = {'mutation_rate':mutation_rate,
+#                        'mutation_rate_2':mutation_rate_2,
+#                        'mutation_rate_list':mutation_rate_list,
+#                        'mutation_rate_2_list':mutation_rate_2_list,
+#                        'best_move':best_move,
+#                        'best_move_turn':best_move_turn,
+#                        'max_fitness':max_fitness,
+#                        'surrogate_score':surrogate_score,
+#                        'next_gen_conc':next_gen_conc,
+#                        'best_conc_array':best_conc_array,
+#                        'dictionary_of_moves':dictionary_of_moves,
+#                        'conc_array':next_gen_conc,
+#                        'spectra_array':current_gen_spectra,
+#                        'desired':x_test,
+#                        'conc_array_actual': conc_array_actual,
+#                        'spectra_array_actual': spectra_array_actual,
+#                        'current_gen_spectra': current_gen_spectra,
+#                        'iteration':iteration,
+#                        'median_fitness_list':median_fitness_list,
+#                        'max_fitness_list':max_fitness_list}
+    return loaded_dict
 
 
-def plot_fitness(next_gen_conc, current_gen_spectra, x_test,
-                 median_fitness_list, max_fitness_list, iteration, savefig):
+#def plot_fitness(next_gen_conc, current_gen_spectra, x_test,
+#                 median_fitness_list, max_fitness_list, iteration, savefig):
+def plot_fitness(loaded_dict, **kwargs):
+    median_fitness_list = loaded_dict['median_fitness_list']
+    max_fitness_list = loaded_dict['max_fitness_list']
+    iteration = loaded_dict['iteration']
+    savefig = kwargs['savefig']
+    next_gen_conc = loaded_dict['next_gen_conc']
+    
+    if 'current_gen_spectra' in loaded_dict.keys() and 'single_data' not in loaded_dict.keys():
+        spectra = loaded_dict['current_gen_spectra']
+        desired_spectra = loaded_dict['desired_spectra']
+        a, median_fitness, max_fitness = fitness(spectra = spectra,
+                                             conc = next_gen_conc,
+                                             desired_spectra = desired_spectra)
+        setting = 1
+    elif 'single_data' in loaded_dict.keys() and 'current_gen_spectra' not in loaded_dict.keys():
+        single_data = loaded_dict['single_data']
+        single_desired = loaded_dict['single_desired']
+        array, median_fitness, max_fitness = fitness(single_data = single_data, 
+                                                 conc = next_gen_conc,
+                                                 single_desired = single_desired)
+        setting = 2
+    elif 'single_data' and 'current_gen_spectra' in loaded_dict.keys():
+        single_data = loaded_dict['single_data']
+        current_gen_spectra = loaded_dict['current_gen_spectra']
+        single_desired = loaded_dict['single_desired']
+        desired_spectra = loaded_dict['desired_spectra']
+        setting = 3
+    
     '''
         Plots the fitness of the generations with the iteration number
         Inputs:
@@ -340,14 +581,7 @@ def plot_fitness(next_gen_conc, current_gen_spectra, x_test,
         - max_fitness_list: updates max fitness lits
         - iteration: updates iteration number
     '''
-    # Normalize Data
-    spectra = current_gen_spectra
-    spectra = spectra.T
-    spectra = MinMaxScaler().fit(spectra).transform(spectra).T
-    desired = MinMaxScaler().fit(x_test).transform(x_test).T
-    desired = desired.reshape(1, -1)[0].reshape(-1, 1).T
-    # Calculate Fitness
-    a, median_fitness, max_fitness = fitness(spectra, next_gen_conc, desired)
+
     # Appending to list
     i = iteration[-1]
     i = i + 1
@@ -371,7 +605,7 @@ def plot_fitness(next_gen_conc, current_gen_spectra, x_test,
     return median_fitness_list, max_fitness_list, iteration
 
 
-def plot_spectra(current_gen_spectra, x_test, wavelength, iteration, savefig):
+def plot_spectra(loaded_dict, **kwargs):
     '''
         Plots the Uv-vis spectra along with the desired one.
         Inputs:
@@ -386,13 +620,17 @@ def plot_spectra(current_gen_spectra, x_test, wavelength, iteration, savefig):
         - savefig: either True or False, determines whether to save the figures
         as images.
     '''
-    spectra = current_gen_spectra
-    spectra = spectra.T
-    spectra = MinMaxScaler().fit(spectra).transform(spectra).T
-    desired = MinMaxScaler().fit(x_test).transform(x_test).T
-    desired = desired.reshape(1, -1)[0].reshape(-1, 1).T
+    wavelength = kwargs['wavelength']
+    savefig = kwargs['savefig']
+    spectra = loaded_dict['current_gen_spectra']
+    desired_spectra = loaded_dict['desired_spectra'].reshape(1,-1)
+    iteration = loaded_dict['iteration']
+    # spectra = spectra.T
+    # spectra = MinMaxScaler().fit(spectra).transform(spectra).T
+    # desired = MinMaxScaler().fit(x_test).transform(x_test).T
+    # desired = desired.reshape(1, -1)[0].reshape(-1, 1).T
     fig, ax = plt.subplots(ncols=2, nrows=1, figsize=(20, 7))
-    ax[0].plot(wavelength, desired.T, label='Target', linewidth=5, c='k')
+    ax[0].plot(wavelength, desired_spectra.T, label='Target', linewidth=5, c='k')
     ax[0].set_title('Spectra of All Samples')
     ax[0].set_ylabel('Absorbance')
     ax[0].set_xlabel('Wavelength (nm)')
@@ -401,12 +639,12 @@ def plot_spectra(current_gen_spectra, x_test, wavelength, iteration, savefig):
     ax[0].legend(loc=2)
     fitness_list = []
     for ii in range(spectra.shape[0]):
-        fitness = 1/np.sum(np.abs(spectra[ii, :] - desired))
+        fitness = 1/np.sum(np.abs(spectra[ii, :] - desired_spectra))
         fitness_list.append(fitness)
     fitness_array = np.asarray(fitness_list).reshape(-1, 1)
     array = np.hstack((spectra, fitness_array))
     sorted_array = array[np.argsort(array[:, -1])]
-    ax[1].plot(wavelength, desired.T, label='Target',
+    ax[1].plot(wavelength, desired_spectra.T, label='Target',
                linewidth=5, c='k')
     ax[1].plot(wavelength, sorted_array[-1, :-1],
                label='Best Sample', linewidth=3)
@@ -414,6 +652,36 @@ def plot_spectra(current_gen_spectra, x_test, wavelength, iteration, savefig):
     ax[1].set_ylabel('Absorbance')
     ax[1].set_xlabel('Wavelength (nm)')
     ax[1].legend(loc=2)
+    figure_name = 'Iteration_' + str(iteration[-1]) + '.png'
+    if savefig is True:
+        plt.savefig(figure_name)
+    else:
+        pass
+
+def plot_DLS(loaded_dict, **kwargs):
+    '''
+        Plots the Uv-vis spectra along with the desired one.
+        Inputs:
+        - current_gen_spectra: 2d array of the all the spectra where the
+        number of rows equal the number of samples and the number of columns
+        equal the number of datapoints in the spectra.
+        - x_test: 1d array of the desired spectra. It should have the same
+        length as the spectra data from cuurent_gen_spectra.
+        - wavelength: 1d array of the values of the wavelength corresponding
+        to the values for the spectra data.
+        - iteration: list of the iteration numbers
+        - savefig: either True or False, determines whether to save the figures
+        as images.
+    '''
+    savefig = kwargs['savefig']
+    single_data = loaded_dict['single_data']
+    single_desired = loaded_dict['single_desired']
+    iteration = loaded_dict['iteration']
+    fig, ax = plt.subplots(figsize=(20, 7))
+    plt.hist(single_data, rwidth=0.9, label='Samples')
+    plt.hist([single_desired]*int(len(single_data)/4), rwidth=0.1, label='Target')
+    plt.legend()
+    plt.show()
     figure_name = 'Iteration_' + str(iteration[-1]) + '.png'
     if savefig is True:
         plt.savefig(figure_name)

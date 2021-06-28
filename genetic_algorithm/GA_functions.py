@@ -1,4 +1,5 @@
 import numpy as np
+import sys
 from sklearn.preprocessing import MinMaxScaler as mms
 
 
@@ -41,9 +42,8 @@ def prepare_desired_spectra(x_test):
     x_test = mms().fit(x_test).transform(x_test).T
     x_test = x_test.reshape(1, -1)[0].reshape(-1, 1).T
     return x_test
-
-
-def fitness(spectra, conc, desired):
+    
+def fitness(**kwargs):
     '''Sorts an array by its fitness with the most fit row at the bottom
     of the array.
        Inputs:
@@ -63,14 +63,52 @@ def fitness(spectra, conc, desired):
      the spectra, columns 3-6 are the concentrations, and column 7
      is the fitness score. The rows are sorted so that the most fit
      row is at the bottm of the array.
-       '''
+       '''  
+    
+    if 'spectra' and 'conc' and 'desired_spectra' in kwargs.keys() and len(kwargs) == 3:
+        spectra = kwargs['spectra']
+        conc = kwargs['conc']
+        desired_spectra = kwargs['desired_spectra']
+        setting = 1 #type 1 data (spectra)
+    
+    elif 'single_data' and 'single_desired' and 'conc' in kwargs.keys() and len(kwargs) == 3:
+        single_data = kwargs['single_data']
+        single_desired = kwargs['single_desired']
+        conc = kwargs['conc']
+        setting = 2 #type 2 data (DLS)
+    
+    elif 'spectra' and 'conc' and 'desired_spectra' and 'single_data' and 'single_desired' in kwargs.keys():
+        spectra = kwargs['spectra']
+        conc = kwargs['conc']
+        desired_spectra = kwargs['desired_spectra']
+        single_data = kwargs['single_data']
+        single_desired = kwargs['single_desired']
+        setting = 3 #type 3 data (spectra + DLS)
+    
     np.random.seed(seed)
     fit_score_array = []
-    for i in range(spectra.shape[0]):
-        fit_score = 1/np.sum(np.abs(spectra[i, :] - desired)+0.0001)
-        fit_score_array.append(fit_score)
-    fitness_score = np.asarray(fit_score_array)
-    new_array = np.hstack((spectra, conc, fitness_score.reshape(1, -1).T))
+    if setting == 1:
+        for i in range(spectra.shape[0]):
+            #spectra = spectra.T
+            #spectra = mms().fit(spectra).transform(spectra).T
+            #desired_spectra = mms().fit(desired_spectra).transform(desired_spectra).T
+            #desired_spectra = desired_spectra.reshape(1, -1)[0].reshape(-1, 1).T
+            fit_score = 1/(np.sum(np.abs(spectra[i, :].reshape(-1,1) - desired_spectra.reshape(-1,1)+0.0001)))
+            fit_score_array.append(fit_score)
+        fitness_score = np.asarray(fit_score_array)
+        new_array = np.hstack((spectra, conc, fitness_score.reshape(1, -1).T))
+    elif setting == 2:
+        for i in range(single_data.shape[0]):
+            fit_score = 1/(np.abs(single_data[i] - single_desired) + 0.01)
+            fit_score_array.append(fit_score)
+        fitness_score = np.asarray(fit_score_array)
+        new_array = np.hstack((single_data.reshape(-1,1), conc, fitness_score.reshape(1, -1).T))
+    elif setting == 3:
+        for i in range(single_data.shape[0]):
+            fit_score_spectra = 1/(np.sum(np.abs(spectra[i, :].reshape(-1,1) - desired_spectra.reshape(-1,1)+0.01)))
+            fit_score_DLS = 1/(np.abs(single_data[i] - single_desired) + 0.01)
+            fit_score = fit_score_spectra + fit_score_DLS
+            fit_score_array.append(fit_score)
     sorted_array = new_array[np.argsort(new_array[:, -1])]
     lower_fitness, upper_fitness = np.array_split(sorted_array, 2)
     return upper_fitness, np.median(fitness_score), np.max(fitness_score)
@@ -249,16 +287,55 @@ def mutation2(array, rate):
     return array
 
 
-def GA_algorithm(x_train_spectra, y_train_conc, x_test, n_parents, n_offspring,
-                 mutation_rate, mutation_rate_2):
+def GA_algorithm(loaded_dict):
+    mutation_rate = loaded_dict['mutation_rate']
+    mutation_rate_2 = loaded_dict['mutation_rate_2']
+    n_parents = 50
+    n_offspring = loaded_dict['n_samples']
+    next_gen_conc = loaded_dict['next_gen_conc']
+    
+    if 'current_gen_spectra' and 'desired_spectra' in loaded_dict.keys() and 'single_data' not in loaded_dict.keys():
+        current_gen_spectra = loaded_dict['current_gen_spectra']
+        desired_spectra = loaded_dict['desired_spectra']
+        #cgs = current_gen_spectra.T
+        #current_gen_spectra = mms().fit(cgs).transform(cgs).T
+        #desired_spectra = prepare_desired_spectra(desired_spectra)
+        setting = 1
+    elif 'single_data' and 'single_desired' in loaded_dict.keys() and 'current_gen_spectra' not in loaded_dict.keys():
+        single_data = loaded_dict['single_data']
+        single_desired = loaded_dict['single_desired']
+        setting = 2 
+    elif 'current_gen_spectra' and 'desired_spectra' and 'single_data' and 'single_desired' in loaded_dict.keys():
+        current_gen_spectra = loaded_dict['current_gen_spectra']
+        desired_spectra = loaded_dict['desired_spectra']
+        single_data = loaded_dict['single_data']
+        single_desired = loaded_dict['single_desired']
+        cgs = current_gen_spectra.T
+        current_gen_spectra = mms().fit(cgs).transform(cgs).T
+        desired_spectra = prepare_desired_spectra(desired_spectra)
+        setting = 3
+    
     np.random.seed(seed)
     # Obtains fitness of the input concentrations and their spectra
-    array, median_fitness, max_fitness = fitness(x_train_spectra, y_train_conc,
-                                                 x_test)
+    if setting == 1:
+        array, median_fitness, max_fitness = fitness(spectra = current_gen_spectra, 
+                                                 conc = next_gen_conc,
+                                                 desired_spectra = desired_spectra)
+    elif setting == 2:
+        array, median_fitness, max_fitness = fitness(single_data = single_data, 
+                                                 conc = next_gen_conc,
+                                                 single_desired = single_desired)
+    elif setting == 3:
+        array, median_fitness, max_fitness = fitness(single_data = single_data, 
+                                                 conc = next_gen_conc,
+                                                 single_desired = single_desired,
+                                                 spectra = current_gen_spectra,
+                                                 desired_spectra = desired_spectra)
+        
     # Obtains the parents of the ordered fitness array
     parents = select_parents(array, n_parents)
     # Prepares the parents array to remove the spectra information
-    parents = parents[:, parents.shape[1] - y_train_conc.shape[1]-1:]
+    parents = parents[:, parents.shape[1] - next_gen_conc.shape[1]-1:]
     # Performs a crossover to obtain the offspring of the parents
     offspring = crossover(parents, n_offspring)
     # conc_offspring = offspring[:,x_train_spectra.shape[1]:-1]
@@ -290,8 +367,9 @@ def GA_algorithm_unnormalized(x_train_spectra, y_train_conc,
                               mutation_rate, mutation_rate_2):
     np.random.seed(seed)
     # Obtains fitness of the input concentrations and their spectra
-    array, median_fitness, max_fitness = fitness(x_train_spectra,
-                                                 y_train_conc, x_test)
+    array, median_fitness, max_fitness = fitness(spectra = x_train_spectra,
+                                                 conc = y_train_conc, 
+                                                 desired_spectra = x_test)
     # Obtains the parents of the ordered fitness array
     parents = select_parents(array, n_parents)
     # Prepares the parents array to remove the spectra information
@@ -309,8 +387,7 @@ def GA_algorithm_unnormalized(x_train_spectra, y_train_conc,
     return conc_offspring_mutated, median_fitness, max_fitness
 
 
-def perform_iteration(current_gen_spectra, current_gen_conc, desired_spectra,
-                      n_parents, n_offspring, mutation_rate, mutation_rate_2):
+def perform_iteration(loaded_dict):
     ''' Perfroms one iteration of the GA algorithm.
     Inputs:
     - current_gen_spectra: The spectra of the current generation (batch).
@@ -335,16 +412,9 @@ def perform_iteration(current_gen_spectra, current_gen_conc, desired_spectra,
     - next_gen_conc: The concentrations of the next generation to be tested.
     It is a 2D array with number of rows equal to n_offspring and number of
     columns equal to the number of dimensions. '''
+    
     np.random.seed(seed)
-    cgs = current_gen_spectra.T
-    current_gen_spectra = mms().fit(cgs).transform(cgs).T
-    desired_spectra = prepare_desired_spectra(desired_spectra)
-    # Perfrom Genetic Algorithm to determine next Generation
-    next_gen_conc, median_fitness, max_fitness = GA_algorithm(
-      current_gen_spectra,
-      current_gen_conc,
-      desired_spectra,
-      n_parents, n_offspring,
-      mutation_rate,
-      mutation_rate_2)
+    
+    next_gen_conc, median_fitness, max_fitness = GA_algorithm(loaded_dict)
+        
     return next_gen_conc, median_fitness, max_fitness
