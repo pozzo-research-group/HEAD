@@ -11,8 +11,8 @@ class Spectra1D:
     def __init__(self, grid, grid_evals,*args,**kwargs):
         self.fd = FDataGrid(grid_evals, grid, *args,**kwargs)
         
-    def plot(self):
-        self.fig = self.fd.plot(color='tab:blue')
+    def plot(self,*args,**kwargs):
+        self.fig = self.fd.plot(*args,**kwargs)
         self.ax = self.fig.gca()
         self.ax.spines.right.set_visible(False)
         self.ax.spines.top.set_visible(False)
