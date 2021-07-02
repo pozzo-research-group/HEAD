@@ -19,6 +19,6 @@ class Euclidean:
     def sample(self, n_samples=1, method='random'):
         """Generate a random sample from the space
         """
-        idx = np.random.random_integers(len(self.space), size=n_samples)
+        idx = np.random.random_integers(int(len(self.space)-1), size=n_samples)
         
         return self.space[idx,:].squeeze()
