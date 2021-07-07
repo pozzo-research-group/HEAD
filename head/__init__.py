@@ -1,2 +1,2 @@
 from .datareps import UVVis
-from .designspace import Euclidean
+from .designspace import Euclidean, Hyperplane
