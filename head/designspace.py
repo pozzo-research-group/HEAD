@@ -22,6 +22,9 @@ class Euclidean:
         
         return self.space[i].squeeze()
     
+    def __len__(self):
+        return len(self.space)
+
     def sample(self, n_samples=1, method='random'):
         """Generate a random sample from the space
         """
