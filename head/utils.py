@@ -6,7 +6,7 @@ import head
 import numpy as np
 from modAL.models import BayesianOptimizer
 import matplotlib.pyplot as plt
-
+import pdb
 
 def get_spectrum(l, r):
     """ Obtain a simulated absorption spectra for a hexagonal nanorod mesh
@@ -40,6 +40,98 @@ def get_spectrum(l, r):
     
     return head.UVVis(wl, abs_)
 
+
+class ExampleRunner:
+    def __init__(self,dspace):
+        """Example Bayesian Optimizer for UVVis experiments
+
+        Inputs:
+            dspace : one of the implemented `head.datareps` objects
+
+        """
+        self.dspace = dspace
+        self.Lt, self.Rt = 2, 1
+        self.st = get_spectrum(self.Lt,self.Rt)
+        self.S_training = []
+        self.optimizer = {}
+
+    def oracle(self,s):
+        """Score function for spectrum
+
+        A function that takes a spectrum in s and returns its score relative 
+        to a user-defined measure with self.st the target (spectrum)
+        """
+        raise NotImplementedError
+
+    def get_best_spectrum(self,x):
+        """Obtain the best spectrum from the trained data
+        inputs:
+            x : concentration array (a point in self.dspace)
+        """
+
+        from sklearn.neighbors import NearestNeighbors
+        neigh = NearestNeighbors(n_neighbors=2)
+        neigh.fit(self.optimizer.X_training)
+        x = np.asarray(x).reshape(1,len(x))
+        _, ind = neigh.kneighbors(x, n_neighbors=1)
+        S_training = [item for sublist in self.S_training for item in sublist]
+
+        return S_training[int(ind)]
+
+    def request_batch(self,b, is_init=False):
+        """
+        Request a batch of samples to be evaluated
+        inputs:
+            b : batch size (int)
+            is_init : whether the request batch is an initial set of samples from self.dspace (boolean, False)
+        """
+        if is_init:
+            Xb = self.dspace.sample(n_samples=b)
+        else:
+            query_idx, _ = self.optimizer.query(self.dspace.space, b=b)
+            Xb = self.dspace[query_idx,:]
+            
+        return np.asarray(Xb)
+    
+    def evaluate_batch(self, Sb):
+        """
+        Given a set of spectra as a list indexed by the request batch, return their loss/scores
+
+        inputs:
+            Sb : list of head.UVVis objects indexed by the corresponding batch concentrations
+        """
+        self.S_training.append(Sb)
+        print(len(self.S_training))
+        Yb = []
+        for si in Sb:
+            yi = self.oracle(si, self.st)
+            Yb.append(yi)
+
+        return np.asarray(Yb)
+
+    def set_params(self,**params):
+        """ Utility method to add functions to the class
+        """
+        for key,value in params.items():
+            setattr(self,key,value)
+
+        return self
+
+    def plot_bestmatch(self, ax=None):
+        if ax is None:
+            fig, ax = plt.subplots()
+        else:
+            fig = plt.gcf()
+
+        X_max, y_max = self.optimizer.get_max()
+        sbest = self.get_best_spectrum(X_max)
+        sbest.plot(ax)
+        self.st.plot(ax)
+        ax.set_title('Oracle score {:.2f}'.format(float(y_max)))
+        ax.legend(['Target','Best'])
+
+        return
+        
 
 class ExampleRunnerSimulation:
     def __init__(self, dspace):
