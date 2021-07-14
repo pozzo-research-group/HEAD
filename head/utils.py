@@ -50,10 +50,15 @@ class ExampleRunner:
 
         """
         self.dspace = dspace
-        self.Lt, self.Rt = 2, 1
-        self.st = get_spectrum(self.Lt,self.Rt)
         self.S_training = []
         self.optimizer = {}
+
+    def add_target(self,st, **kwargs):
+        """Add a target spectrum
+        """
+        self.st = st
+        for key,value in kwargs.items():
+            setattr(self,'target_'+key,value)
 
     def oracle(self,s):
         """Score function for spectrum
