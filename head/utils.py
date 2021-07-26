@@ -20,7 +20,7 @@ def get_spectrum(l, r):
     material = materials.gold()
     struct = structures.struct(step, geometry, material, verbose=False)
     field_generator = fields.plane_wave
-    wavelengths = np.linspace(400, 1000, 50)
+    wavelengths = np.linspace(400, 1000, 100)
     kwargs = dict(theta=0, inc_angle=180)
 
     efield = fields.efield(field_generator,
