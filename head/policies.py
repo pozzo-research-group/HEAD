@@ -1,7 +1,7 @@
 import numpy as np
 import pdb
 
-def thomspon_sampling(optimizer, X,b=5):
+def thompson_sampling(optimizer, X,b=5):
 	"""Batch Thompson Sampling
 	Inputs:
 	-------
