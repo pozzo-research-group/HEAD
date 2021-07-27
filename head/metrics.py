@@ -1,7 +1,8 @@
-from skfda.misc.metrics import LpDistance
 from scipy.spatial import distance
 
 def func_norm(query, target):
+    from skfda.misc.metrics import LpDistance
+
     """L2-distance between two functions
     inputs:
     ------

@@ -38,7 +38,10 @@ def get_spectrum(l, r):
     
     abs_ = spectrum.T[2]/np.max(spectrum.T[2])
     
-    return head.UVVis(wl, abs_)
+    try:
+        return head.UVVis(wl, abs_)
+    except:
+        return wl,abs_
 
 
 class ExampleRunner:
