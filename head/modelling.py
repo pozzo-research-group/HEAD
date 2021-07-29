@@ -9,30 +9,51 @@ from scipy import stats
 import pdb
 
 class Emulator:
-    def __init__(self, r_mu):
+    def __init__(self):
         
-        self._make_structure(r_mu)
-     
-    def _make_structure(self, r_mu):
         # randmoly select number of structures
-        self.r_mu = r_mu
         self.n_structures = stats.randint.rvs(2,5,size=1)[0]
+        mean = [0, 0]
+        cov = [[2.0, 0.3], [0.3, 0.5]] # just so that we have a PSD
+        self.XY_ = stats.multivariate_normal.rvs(mean, cov, size=self.n_structures)
+        
+    def make_structure(self, r_mu, r_sigma):
+        """Create a structure with spatially distributed nano-sphere by 
+        sampling radius from a normal distribution
+        Inputs:
+            r_mu, r_sigma : mean and variance of the normal distribution
+            
+        NOTE : pyGDM2 define radius as step*number; r_mu and r_sigma corresponds to number
+        step is set to be 20 by default
+        
+        """
         
         # sample radius from a Gaussian distribution
-        self.step = 20
-        self.r_sigma = 2
+        # pyGDM2 defines radius as step*number of particles thus self.radii is a number
+        # while the actual radii of the sphere is self.step*self.radii
+        self.step = 4
+        self.r_mu = r_mu
+        self.r_sigma = r_sigma
         self.radii = stats.norm.rvs(loc=self.r_mu,scale=self.r_sigma,size=self.n_structures)
 
-        # sample few spatial locations to place the particles at
+        # define a scale to use for distributing particles spatially
         spatial_scale = (self.r_mu+self.r_sigma)*self.step*5
-        mean = [0, 0]
-        cov = [[2.0, 0.3], [0.3, 0.5]]
-        self.XY= spatial_scale*stats.multivariate_normal.rvs(mean, cov, size=self.n_structures)
+
+        # unsure whether to vary this or to make this a user defined variable, in which case we are
+        # massively increasing the design space 
+        # For now, the impact of the spatial distribution is not considered
+        # This assumption is valid for SAS profiles where the spatial variation is not accounted for
+        # pyGDM2 however, take this into account to return a spectrum
+        
+        self.XY= spatial_scale*self.XY_
 
         geom_list = []
 
         for i,(x,y) in enumerate(self.XY):
-            _geo = structures.sphere(self.step, R=self.radii[i], mesh='hex')
+            try:
+                _geo = structures.sphere(self.step, R=self.radii[i], mesh='hex')
+            except:
+                pdb.set_trace()
             _geo = structures.shift(_geo, [x, y, 0])
             geom_list.append(_geo)
 
@@ -49,7 +70,8 @@ class Emulator:
         ax.scatter(self.geometry[:,0], self.geometry[:,1])
         ax.scatter(self.XY[:,0], self.XY[:,1], marker='x')
         ax.axis('equal')
-        plt.show()
+        
+        return
          
     def get_spectrum(self):
         """ Obtain a simulated absorption spectra for a hexagonal nanorod mesh
