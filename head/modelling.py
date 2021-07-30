@@ -8,14 +8,16 @@ from pyGDM2 import (core, propagators, fields,
 from scipy import stats
 import pdb
 
+import warnings
+warnings.filterwarnings("ignore")
+
 class Emulator:
     def __init__(self):
         
         # randmoly select number of structures
-        self.n_structures = stats.randint.rvs(2,5,size=1)[0]
-        mean = [0, 0]
-        cov = [[2.0, 0.3], [0.3, 0.5]] # just so that we have a PSD
-        self.XY_ = stats.multivariate_normal.rvs(mean, cov, size=self.n_structures)
+        self.n_structures = stats.randint.rvs(2,6,size=1)[0]
+        rng = np.random.default_rng()
+        self.XY_ = rng.standard_normal(size=(self.n_structures, 2))
         
     def make_structure(self, r_mu, r_sigma):
         """Create a structure with spatially distributed nano-sphere by 
@@ -31,10 +33,11 @@ class Emulator:
         # sample radius from a Gaussian distribution
         # pyGDM2 defines radius as step*number of particles thus self.radii is a number
         # while the actual radii of the sphere is self.step*self.radii
-        self.step = 4
+        self.step = 15
         self.r_mu = r_mu
         self.r_sigma = r_sigma
-        self.radii = stats.norm.rvs(loc=self.r_mu,scale=self.r_sigma,size=self.n_structures)
+        self.radii = stats.lognorm.rvs(s = self.r_sigma, loc=self.r_mu,
+            scale=1,size=self.n_structures)
 
         # define a scale to use for distributing particles spatially
         spatial_scale = (self.r_mu+self.r_sigma)*self.step*5
@@ -50,10 +53,7 @@ class Emulator:
         geom_list = []
 
         for i,(x,y) in enumerate(self.XY):
-            try:
-                _geo = structures.sphere(self.step, R=self.radii[i], mesh='hex')
-            except:
-                pdb.set_trace()
+            _geo = structures.sphere(self.step, R=self.radii[i], mesh='hex')
             _geo = structures.shift(_geo, [x, y, 0])
             geom_list.append(_geo)
 
