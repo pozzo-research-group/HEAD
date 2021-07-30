@@ -1,6 +1,6 @@
 import numpy as np
 import sys
-from sklearn.preprocessing import MinMaxScaler as mms
+#from sklearn.preprocessing import MinMaxScaler as mms
 
 
 def set_seed(x):
@@ -84,6 +84,14 @@ def fitness(**kwargs):
         single_data = kwargs['single_data']
         single_desired = kwargs['single_desired']
         setting = 3 #type 3 data (spectra + DLS)
+        
+    elif 'spectra_array_1' and 'spectra_array_2' in kwargs.keys():
+        spectra_array_1 = kwargs['spectra_array_1']
+        spectra_array_2 = kwargs['spectra_array_2']
+        conc = kwargs['conc']
+        desired_spectra_1 = kwargs['desired_spectra_1']
+        desired_spectra_2 = kwargs['desired_spectra_2']
+        setting = 4 #type 4 data (spectra + spectra)
     
     np.random.seed(seed)
     fit_score_array = []
@@ -93,7 +101,9 @@ def fitness(**kwargs):
             #spectra = mms().fit(spectra).transform(spectra).T
             #desired_spectra = mms().fit(desired_spectra).transform(desired_spectra).T
             #desired_spectra = desired_spectra.reshape(1, -1)[0].reshape(-1, 1).T
-            fit_score = 1/(np.sum(np.abs(spectra[i, :].reshape(-1,1) - desired_spectra.reshape(-1,1)+0.0001)))
+            #print(np.log10(spectra[-1, :].reshape(-1,1)))
+            
+            fit_score = 1/(np.sum(np.abs(spectra[i, :].reshape(-1,1) - desired_spectra.reshape(-1,1))))
             fit_score_array.append(fit_score)
         fitness_score = np.asarray(fit_score_array)
         new_array = np.hstack((spectra, conc, fitness_score.reshape(1, -1).T))
@@ -105,13 +115,23 @@ def fitness(**kwargs):
         new_array = np.hstack((single_data.reshape(-1,1), conc, fitness_score.reshape(1, -1).T))
     elif setting == 3:
         for i in range(single_data.shape[0]):
-            fit_score_spectra = 1/(np.sum(np.abs(spectra[i, :].reshape(-1,1) - desired_spectra.reshape(-1,1)+0.01)))
-            fit_score_DLS = 1/(np.abs(single_data[i] - single_desired) + 0.01)
-            fit_score = fit_score_spectra + fit_score_DLS
+            fit_score_vector = 1/(np.sum(np.abs(spectra[i, :].reshape(-1,1) - desired_spectra.reshape(-1,1)+0.01)))
+            fit_score_scalar = 1/(np.abs(single_data[i] - single_desired) + 0.01)
+            fit_score = np.log(fit_score_vector) + np.log(fit_score_scalar)
             fit_score_array.append(fit_score)
+        fitness_score = np.asarray(fit_score_array)    
+        new_array = np.hstack((single_data.reshape(-1,1), conc, fitness_score.reshape(1, -1).T))
+    elif setting == 4:
+        for i in range(spectra_array_1.shape[0]):
+            fit_score_vector_1 = 1/(np.sum(np.abs(spectra_array_1[i, :].reshape(-1,1) - desired_spectra_1.reshape(-1,1))))
+            fit_score_vector_2 = 1/(np.sum(np.abs(spectra_array_2[i, :].reshape(-1,1) - desired_spectra_2.reshape(-1,1))))
+            fit_score = fit_score_vector_1 + fit_score_vector_2
+            fit_score_array.append(fit_score)
+        fitness_score = np.asarray(fit_score_array)    
+        new_array = np.hstack((conc, fitness_score.reshape(1, -1).T))     
     sorted_array = new_array[np.argsort(new_array[:, -1])]
-    lower_fitness, upper_fitness = np.array_split(sorted_array, 2)
-    return upper_fitness, np.median(fitness_score), np.max(fitness_score)
+    lower_fitness, upper_fitness = np.array_split(sorted_array, 2)   
+    return sorted_array, np.median(fitness_score), np.max(fitness_score)
 
 
 def select_parents(sorted_array, n_parents):
@@ -245,7 +265,8 @@ def mutation(array, rate):
             if np.random.rand() < rate:
                 conc = str(array[j, i])
                 conc = normalize_sig_figs(conc)
-                column = int(np.round(np.random.uniform(2, 4)))
+                #column = int(np.round(np.random.uniform(2, 4)))
+                column = int(np.round(np.random.uniform(2, 10)))
                 random_int = str(int(np.round(np.random.uniform(0, 9))))
                 if column == 2:
                     digit1 = random_int
@@ -256,9 +277,9 @@ def mutation(array, rate):
                     digit2 = random_int
                     digit3 = conc[4]
                 else:
-                    digit1 = conc[2]
-                    digit2 = conc[3]
-                    digit3 = random_int
+                    digit1 = str(int(np.round(np.random.uniform(0, 9))))
+                    digit2 = str(int(np.round(np.random.uniform(0, 9))))
+                    digit3 = str(int(np.round(np.random.uniform(0, 9))))
                 mutated_conc = conc[0] + conc[1] + digit1 + digit2 + digit3
                 mutated_conc = float(mutated_conc)
                 array[j, i] = mutated_conc
@@ -283,7 +304,7 @@ def mutation2(array, rate):
     for j in range(array.shape[0]):
         for i in range(array.shape[1]):
             if np.random.rand() < rate:
-                array[j, i] = array[j, i] + (np.random.rand()-0.5)/50
+                array[j, i] = array[j, i] + (np.random.rand()-0.5)/5
     return array
 
 
@@ -310,11 +331,16 @@ def GA_algorithm(loaded_dict):
         desired_spectra = loaded_dict['desired_spectra']
         single_data = loaded_dict['single_data']
         single_desired = loaded_dict['single_desired']
-        cgs = current_gen_spectra.T
-        current_gen_spectra = mms().fit(cgs).transform(cgs).T
-        desired_spectra = prepare_desired_spectra(desired_spectra)
+        #cgs = current_gen_spectra.T
+        #current_gen_spectra = mms().fit(cgs).transform(cgs).T
+        #desired_spectra = prepare_desired_spectra(desired_spectra)
         setting = 3
-    
+    elif 'spectra_array_1' and 'spectra_array_2' in loaded_dict.keys():
+        spectra_array_1 = loaded_dict['spectra_array_1']
+        desired_spectra_1 = loaded_dict['desired_spectra_1']
+        spectra_array_2 = loaded_dict['spectra_array_2']
+        desired_spectra_2 = loaded_dict['desired_spectra_2']
+        setting = 4
     np.random.seed(seed)
     # Obtains fitness of the input concentrations and their spectra
     if setting == 1:
@@ -331,6 +357,12 @@ def GA_algorithm(loaded_dict):
                                                  single_desired = single_desired,
                                                  spectra = current_gen_spectra,
                                                  desired_spectra = desired_spectra)
+    elif setting == 4:
+        array, median_fitness, max_fitness = fitness(spectra_array_1 = spectra_array_1, 
+                                                 conc = next_gen_conc,
+                                                 spectra_array_2 = spectra_array_2,
+                                                 desired_spectra_1 = desired_spectra_1,
+                                                 desired_spectra_2 = desired_spectra_2)
         
     # Obtains the parents of the ordered fitness array
     parents = select_parents(array, n_parents)
@@ -346,19 +378,19 @@ def GA_algorithm(loaded_dict):
     conc_offspring_mutated = mutation(conc_offspring_unique, mutation_rate)
     # Filters offspring array for negative values and normalizes all values
     conc_offspring_mutated = np.abs(conc_offspring_mutated)
-    for j in range(conc_offspring_mutated.shape[0]):
-        row_sum = np.sum(conc_offspring_mutated[j, :])
-        for i in range(conc_offspring_mutated.shape[1]):
-            conc_ij = conc_offspring_mutated[j, i]
-            conc_offspring_mutated[j, i] = conc_ij/(row_sum)
+    #for j in range(conc_offspring_mutated.shape[0]):
+    #    row_sum = np.sum(conc_offspring_mutated[j, :])
+    #    for i in range(conc_offspring_mutated.shape[1]):
+    #        conc_ij = conc_offspring_mutated[j, i]
+    #        conc_offspring_mutated[j, i] = conc_ij/(row_sum)
     conc_offspring_mutated = mutation2(conc_offspring_mutated,
                                        mutation_rate_2)
     conc_offspring_mutated = np.abs(conc_offspring_mutated)
-    for j in range(conc_offspring_mutated.shape[0]):
-        row_sum = np.sum(conc_offspring_mutated[j, :])
-        for i in range(conc_offspring_mutated.shape[1]):
-            conc_ij = conc_offspring_mutated[j, i]
-            conc_offspring_mutated[j, i] = conc_ij/(row_sum)
+    #for j in range(conc_offspring_mutated.shape[0]):
+    #    row_sum = np.sum(conc_offspring_mutated[j, :])
+    #    for i in range(conc_offspring_mutated.shape[1]):
+    #        conc_ij = conc_offspring_mutated[j, i]
+    #        conc_offspring_mutated[j, i] = conc_ij/(row_sum)
     return conc_offspring_mutated, median_fitness, max_fitness
 
 
