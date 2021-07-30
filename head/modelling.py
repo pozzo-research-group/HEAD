@@ -78,12 +78,12 @@ class Emulator:
         """
 
         field_generator = fields.plane_wave
-        wavelengths = np.linspace(400, 1000, 100)
+        wavelengths = np.linspace(400, 1000, 5)
         kwargs = dict(theta=0, inc_angle=180)
 
         efield = fields.efield(field_generator,
                        wavelengths=wavelengths, kwargs=kwargs)
-        n1 = n2 = 1.3
+        n1 = n2 = 1.0
         dyads = propagators.DyadsQuasistatic123(n1=n1, n2=n2)
 
         sim = core.simulation(self.struct, efield, dyads)
