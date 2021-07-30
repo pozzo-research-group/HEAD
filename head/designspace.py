@@ -4,7 +4,6 @@ from sklearn.neighbors import kneighbors_graph
 from scipy.spatial import ConvexHull as CH
 from scipy.spatial import Delaunay
 
-
 class Euclidean:
     def __init__(self, points):
         """Euclidean space in d dimensions (```\mathbb{R}^d```)
