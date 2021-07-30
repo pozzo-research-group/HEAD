@@ -8,14 +8,16 @@ from pyGDM2 import (core, propagators, fields,
 from scipy import stats
 import pdb
 
+import warnings
+warnings.filterwarnings("ignore")
+
 class Emulator:
     def __init__(self):
         
         # randmoly select number of structures
-        self.n_structures = stats.randint.rvs(2,5,size=1)[0]
-        mean = [0, 0]
-        cov = [[2.0, 0.3], [0.3, 0.5]] # just so that we have a PSD
-        self.XY_ = stats.multivariate_normal.rvs(mean, cov, size=self.n_structures)
+        self.n_structures = stats.randint.rvs(2,6,size=1)[0]
+        rng = np.random.default_rng()
+        self.XY_ = rng.standard_normal(size=(self.n_structures, 2))
         
     def make_structure(self, r_mu, r_sigma):
         """Create a structure with spatially distributed nano-sphere by 
