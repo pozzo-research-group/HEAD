@@ -23,12 +23,12 @@ def euclidean_dist(query, target):
     Caution: This function DO NOT consider the spectra as functions but as list of numebrs
     inputs:
     ------
-        query, target : query and target spectra as a head.Spectra1D object
+        query, target : query and target spectra as numpy arrays of same shape
 
     outputs:
     --------
         distance as a float
 
     """
-    val = -distance.euclidean(query.fd.data_matrix, target.fd.data_matrix)
+    val = -distance.euclidean(query, target)
     return float(val)
