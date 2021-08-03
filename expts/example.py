@@ -1,19 +1,22 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from head import Emulator, Grid
-import os
+import os, shutil
 import time
+import warnings
+warnings.filterwarnings("ignore")
 
 start = time.time()
 
 savedir = '../figures/example/'
-if not os.path.exists(savedir):
-    os.makedirs(savedir)
+if  os.path.exists(savedir):
+	shutil.rmtree(savedir)
+os.makedirs(savedir)
 
-sim = Emulator()
-X = np.linspace(3,5, num=2) 
-Y = np.linspace(1,2, num=2)
+X = np.linspace(0.45,0.75, num=5) 
+Y = np.linspace(0.45,0.75, num=5)
 grid = Grid(X,Y)
+sim = Emulator()
 
 def run(r_mu, r_sigma, ind):
 	fig = plt.figure(figsize=(12,3))
@@ -33,8 +36,11 @@ def run(r_mu, r_sigma, ind):
 	q, pq = sim.get_saxs()
 	ax = fig.add_subplot(1,3,3)
 	ax.loglog(q, pq)
+	ax.set_xlabel('log(q) (1/A)')
+	ax.set_ylabel('log(I(q))')
 	
-	plt.savefig(savedir + '/%d.png'%ind)
+	fig.suptitle('r = '+','.join('%.2f'%i for i in sim.step*sim.radii))
+	plt.savefig(savedir + '/%d.png'%ind, bbox_inches='tight')
 	plt.close()
 
 for i, point in enumerate(grid):

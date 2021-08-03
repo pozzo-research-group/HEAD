@@ -25,7 +25,7 @@ class Emulator:
         Inputs:
             r_mu, r_sigma : mean and variance of the normal distribution
             
-        NOTE : pyGDM2 define radius as step*number; r_mu and r_sigma corresponds to number
+        NOTE : pyGDM2 define radius as step*number; r_mu and r_sigma corresponds to number;
         step is set to be 20 by default
         
         """
@@ -78,7 +78,7 @@ class Emulator:
         """
 
         field_generator = fields.plane_wave
-        wavelengths = np.linspace(400, 1000, 5)
+        wavelengths = np.linspace(400, 1000, 200)
         kwargs = dict(theta=0, inc_angle=180)
 
         efield = fields.efield(field_generator,
