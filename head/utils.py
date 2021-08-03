@@ -96,7 +96,7 @@ class ExampleRunner:
         if is_init:
             Xb = self.dspace.sample(n_samples=b)
         else:
-            query_idx, _ = self.optimizer.query(self.dspace.space, b=b)
+            query_idx, _ = self.optimizer.query(self.dspace.points, b=b)
             Xb = self.dspace[query_idx,:]
             
         return np.asarray(Xb)
@@ -184,7 +184,7 @@ class ExampleRunnerSimulation:
         if is_init:
             Xb = self.dspace.sample(n_samples=b)
         else:
-            query_idx, _ = self.optimizer.query(self.dspace.space, b=b)
+            query_idx, _ = self.optimizer.query(self.dspace.points, b=b)
             Xb = self.dspace[query_idx,:]
             
         return np.asarray(Xb)
@@ -210,7 +210,7 @@ class ExampleRunnerSimulation:
         plt.show()
         
     def plot_learning(self):
-        y_pred, y_std = self.optimizer.predict(self.dspace.space, return_std=True)
+        y_pred, y_std = self.optimizer.predict(self.dspace.points, return_std=True)
         X_max, y_max = self.optimizer.get_max()
         fig, axs = plt.subplots(1,2,figsize=(2*4*1.6,4))
         im = axs[0].contourf(self.dspace.mesh[0], self.dspace.mesh[1], 

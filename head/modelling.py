@@ -36,6 +36,7 @@ class Emulator:
         self.step = 15
         self.r_mu = r_mu
         self.r_sigma = r_sigma
+        self.radii_dist = stats.lognorm(s = self.r_sigma, loc=self.r_mu,scale=1) 
         self.radii = stats.lognorm.rvs(s = self.r_sigma, loc=self.r_mu,
             scale=1,size=self.n_structures)
 
@@ -125,8 +126,7 @@ class Emulator:
         q = np.logspace(np.log10(1e-3), np.log10(1), 200)
         radii = self.step*self.radii
         Iqs = [self._get_Iq(q, ri) for ri in radii]
-        dist = stats.norm(self.r_mu, self.r_sigma)
-        pdf = [dist.pdf(ri) for ri in self.radii]
+        pdf = [self.radii_dist.pdf(ri) for ri in self.radii]
         integrand = np.asarray([Iqs[i]*pdf[i] for i in range(len(self.radii))])
         indx = np.argsort(radii)
         pq = np.asarray([np.trapz(integrand[indx,i], x = radii[indx]) for i in range(len(q))])
