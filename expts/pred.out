@@ -1,6 +1,0 @@
-SLURM_JOBID=2107215
-SLURM_JOB_NODELIST=n2220
-SLURM_NNODES=1
-SLURMTMPDIR=
-working directory = /gscratch/scrubbed/kiranvad/Genetic_Algorithm/expts
-Time elapsed : 1652.17 sec
