@@ -20,6 +20,7 @@ echo "SLURM_JOB_NODELIST"=$SLURM_JOB_NODELIST
 echo "SLURM_NNODES"=$SLURM_NNODES
 echo "SLURMTMPDIR="$SLURMTMPDIR
 
+echo "Environment from : "$SLURM_CHDIR
 source env/bin/activate
 which python
 echo "working directory = "$SLURM_SUBMIT_DIR
