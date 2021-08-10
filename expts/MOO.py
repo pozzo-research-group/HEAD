@@ -138,7 +138,6 @@ acq_fun = lambda model: qExpectedHypervolumeImprovement(
 
 # 4. define a optimization routine for acqusition function 
 
-
 BATCH_SIZE = 4 
 
 def selector(f, q = BATCH_SIZE):
