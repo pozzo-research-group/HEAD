@@ -125,22 +125,6 @@ class ExampleRunner:
 
         return self
 
-    def plot_bestmatch(self, ax=None):
-        if ax is None:
-            fig, ax = plt.subplots()
-        else:
-            fig = plt.gcf()
-
-        X_max, y_max = self.optimizer.get_max()
-        sbest = self.get_best_spectrum(X_max)
-        sbest.plot(ax)
-        self.st.plot(ax)
-        ax.set_title('Oracle score {:.2f}'.format(float(y_max)))
-        ax.legend(['Target','Best'])
-
-        return
-        
-
 class ExampleRunnerSimulation:
     def __init__(self, dspace):
         self.dspace = dspace
