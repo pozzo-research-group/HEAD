@@ -4,8 +4,8 @@
 #SBATCH --account=genpool
 #SBATCH --partition=hpc
 #SBATCH --nodes=1   
-#SBATCH --ntasks-per-node=28
-#SBATCH --time=3:00:00
+#SBATCH --ntasks-per-node=12
+#SBATCH --time=4:00:00
 #SBATCH --mem=100G
 #SBATCH --chdir=/gscratch/scrubbed/kiranvad/Genetic_Algorithm
 #SBATCH --output=expts/pred.out

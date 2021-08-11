@@ -1,14 +1,13 @@
-import os
-import torch
-import time
-import warnings
-from botorch.exceptions import BadInitialCandidatesWarning
-import pdb
+import os, shutil, time, warnings, pdb
+
 import matplotlib.pyplot as plt
-import head
 import numpy as np
+from matplotlib.cm import ScalarMappable
+
+import head
 from head.metrics import euclidean_dist
 
+import torch
 from botorch.models.gp_regression import SingleTaskGP
 from botorch.models.transforms.outcome import Standardize
 from gpytorch.mlls.exact_marginal_log_likelihood import ExactMarginalLogLikelihood
@@ -17,15 +16,13 @@ from botorch.acquisition.multi_objective.monte_carlo import qExpectedHypervolume
 from botorch.sampling.samplers import SobolQMCNormalSampler
 from botorch.optim.optimize import optimize_acqf_discrete
 from botorch.utils.transforms import unnormalize
-
-
+from botorch.exceptions import BadInitialCandidatesWarning
 from botorch import fit_gpytorch_model
 from botorch.acquisition.monte_carlo import qExpectedImprovement
 from botorch.utils.multi_objective.pareto import is_non_dominated
 from botorch.utils.multi_objective.hypervolume import Hypervolume
 
-import matplotlib.pyplot as plt
-from matplotlib.cm import ScalarMappable
+
 
 torch.manual_seed(0)
 
@@ -98,7 +95,7 @@ def batch_oracle(x):
     out = []
     for xi in x.squeeze(1):
         out.append(oracle(xi))
-    return torch.stack(out, dim=0)
+    return torch.stack(out, dim=0).to(**tkwargs)
 
 
 problem = lambda s : batch_oracle(s).to(**tkwargs)
@@ -111,7 +108,7 @@ def generate_initial_data(n=6):
     train_x = points[train_xid.long(),:]
     train_obj = problem(train_x)
     
-    return torch.squeeze(train_x), torch.squeeze(train_obj)
+    return torch.squeeze(train_x).to(**tkwargs), torch.squeeze(train_obj).to(**tkwargs)
 
 train_x, train_obj = generate_initial_data(n=6)
 
@@ -241,11 +238,13 @@ sim.plot_structure2d(ax=axs[0])
 q, sopt = sim.get_saxs()
 axs[1].loglog(q, sopt, label='Optimal')
 axs[1].loglog(q, st, label='Target')
+axs[1].legend()
 fig.suptitle('r = '+','.join('%.2f'%i for i in sim.step*sim.radii))
 
 wl, Iopt = sim.get_spectrum()
 axs[2].plot(wl,Iopt, label='Optimal')
 axs[2].plot(wl,It, label='Target')
+axs[2].legend()
 plt.savefig(savedir+'optimum.png', dpi=500, bbox_inches='tight')
 
 

@@ -13,32 +13,36 @@ if  os.path.exists(savedir):
 	shutil.rmtree(savedir)
 os.makedirs(savedir)
 
-X = np.linspace(0.45,0.75, num=5) 
-Y = np.linspace(0.45,0.75, num=5)
+X = np.linspace(10,40, num=10) 
+Y = np.linspace(0.01,1, num=10)
 grid = Grid(X,Y)
-sim = Emulator()
+fig, ax = plt.subplots()
+ax.scatter(grid.points[:,0], grid.points[:,1])
+ax.set_xlabel(r'$r_{\mu}$')
+ax.set_ylabel(r'$r_{\sigma}$')
+plt.show()
 
-def run(r_mu, r_sigma, ind):
-	fig = plt.figure(figsize=(12,3))
-	# step 1: create the structure
-	sim.make_structure(r_mu,r_sigma)
-	ax = fig.add_subplot(1,3,1)
-	sim.plot_structure2d(ax=ax)
-	
-	# step 2: simulate a absorption spectra
-	wl, I = sim.get_spectrum()
-	ax = fig.add_subplot(1,3,2)
-	ax.plot(wl,I)
-	ax.set_xlabel('Wavelength (nm)')
-	ax.set_ylabel('Intensity')
 
-	# step 3: simulate SAS profile
-	q, pq = sim.get_saxs()
-	ax = fig.add_subplot(1,3,3)
-	ax.loglog(q, pq)
-	ax.set_xlabel('log(q) (1/A)')
-	ax.set_ylabel('log(I(q))')
-	
+sim = Emulator(use_mean=False)
+
+def run(mu, sigma, ind):
+    fig, axs = plt.subplots(1,3,figsize=(4*3,4))
+	fig.subplots_adjust(wspace=0.5)
+    sim.make_structure(r_mu=mu,r_sigma=sigma)
+    sim.plot_radii(axs[0])
+    axs[0].set_xlabel('radius')
+    axs[0].set_ylabel('PDF')
+
+    q, pq = sim.get_saxs(n_samples=100)
+    axs[1].plot(q, pq)
+    axs[1].set_xscale('log')
+    axs[1].set_yscale('log')
+    plt.setp(axs[1], xlabel='q (1/A)', ylabel='I(q)')
+
+    wl, abs_ = sim.get_spectrum(n_samples=100)
+    axs[2].plot(wl, abs_)
+    plt.setp(axs[2], xlabel=r'$\lambda$ (nm)', ylabel='abs (a.u.)')
+
 	fig.suptitle('r = '+','.join('%.2f'%i for i in sim.step*sim.radii))
 	plt.savefig(savedir + '/%d.png'%ind, bbox_inches='tight')
 	plt.close()
