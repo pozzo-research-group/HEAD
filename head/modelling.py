@@ -36,7 +36,7 @@ class Emulator:
         
         """
         
-        # sample radius from a Gaussian distribution
+        # sample radius from a log-normal distribution
         # pyGDM2 defines radius as step*number of particles thus self.radii is a number
         # while the actual radii of the sphere is self.step*self.radii
         self.step = 15
@@ -46,7 +46,7 @@ class Emulator:
         self.radii_dist_kwargs = {'s': self.r_sigma, 'loc':self.r_mu, 'scale':1}
         self.radii_dist = stats.lognorm(**self.radii_dist_kwargs) 
         self.radii = stats.lognorm.rvs(size=self.n_structures, **self.radii_dist_kwargs)
-        self.radii_nrs = self.radii_nrs/self.step
+        self.radii_nrs = self.radii/self.step
         
         # define a scale to use for distributing particles spatially
         spatial_scale = (self.r_mu+self.r_sigma)*self.step*5
@@ -142,7 +142,7 @@ class Emulator:
         return Iq
         
     def _make_polydisperse(self, F, x):
-        pdf = self.radii_dist.pdf(self.radii_nrs)
+        pdf = self.radii_dist.pdf(self.radii)
         integrand = np.asarray([F[i]*pdf[i] for i in range(len(self.radii_nrs))])
         indx = np.argsort(self.radii)
         integral = np.asarray([np.trapz(integrand[indx,i], x = self.radii[indx]) for i in range(len(x))])
