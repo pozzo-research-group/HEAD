@@ -12,21 +12,27 @@ import warnings
 warnings.filterwarnings("ignore")
 
 class Emulator:
-    def __init__(self):
+    def __init__(self, use_mean = True):
         
         # randmoly select number of structures
         self.n_structures = stats.randint.rvs(2,6,size=1)[0]
         rng = np.random.default_rng()
         self.XY_ = rng.standard_normal(size=(self.n_structures, 2))
+
+        if use_mean:
+            self.make_polydisperse = self._average_profiles
+        else:
+            self.make_polydisperse = self._make_polydisperse
         
-    def make_structure(self, r_mu, r_sigma):
+        
+    def make_structure(self, r_mu, r_sigma, spatial= False):
         """Create a structure with spatially distributed nano-sphere by 
         sampling radius from a normal distribution
         Inputs:
             r_mu, r_sigma : mean and variance of the normal distribution
             
         NOTE : pyGDM2 define radius as step*number; r_mu and r_sigma corresponds to number;
-        step is set to be 20 by default
+        step is set to be 15 by default
         
         """
         
@@ -36,10 +42,12 @@ class Emulator:
         self.step = 15
         self.r_mu = r_mu
         self.r_sigma = r_sigma
-        self.radii_dist = stats.lognorm(s = self.r_sigma, loc=self.r_mu,scale=1) 
-        self.radii = stats.lognorm.rvs(s = self.r_sigma, loc=self.r_mu,
-            scale=1,size=self.n_structures)
-
+        self.spatial = spatial
+        self.radii_dist_kwargs = {'s': self.r_sigma, 'loc':self.r_mu, 'scale':1}
+        self.radii_dist = stats.lognorm(**self.radii_dist_kwargs) 
+        self.radii = stats.lognorm.rvs(size=self.n_structures, **self.radii_dist_kwargs)
+        self.radii_nrs = self.radii_nrs/self.step
+        
         # define a scale to use for distributing particles spatially
         spatial_scale = (self.r_mu+self.r_sigma)*self.step*5
 
@@ -50,21 +58,25 @@ class Emulator:
         # pyGDM2 however, take this into account to return a spectrum
         
         self.XY= spatial_scale*self.XY_
-
+        self.material = materials.gold()
         geom_list = []
 
         for i,(x,y) in enumerate(self.XY):
-            _geo = structures.sphere(self.step, R=self.radii[i], mesh='hex')
-            _geo = structures.shift(_geo, [x, y, 0])
+            _geo = structures.sphere(self.step, R=self.radii_nrs[i], mesh='hex')
+            if spatial:
+                _geo = structures.shift(_geo, [x, y, 0])
             geom_list.append(_geo)
-
-        self.geometry = structures.combine_geometries(geom_list)
-        self.material = materials.gold()
-        self.struct = structures.struct(self.step, self.geometry, self.material, verbose=False)
+            
+        if self.spatial:
+            self.geometry = structures.combine_geometries(geom_list)
+        else:
+            self.geometry = geom_list
         
-        return self 
+        return self    
         
     def plot_structure2d(self, ax=None):
+        if not self.spatial:
+            return
         if ax is None:
             fig, ax = plt.subplots()
         
@@ -73,13 +85,25 @@ class Emulator:
         ax.axis('equal')
         
         return
-         
-    def get_spectrum(self):
-        """ Obtain a simulated absorption spectra for a hexagonal nanorod mesh
-        """
+    
+    def plot_radii(self, ax = None):
+        if ax is None:
+           fig, ax = plt.subplots()
+        x_min =  stats.lognorm.ppf(0.01, **self.radii_dist_kwargs)
+        x_max =  stats.lognorm.ppf(0.99, **self.radii_dist_kwargs)
+        x = np.linspace(x_min, x_max, 1000)
+        
+        ax.plot(x, self.radii_dist.pdf(x), 'k-', lw=2)
+        
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+        ax.yaxis.set_ticks_position('left')
+        ax.xaxis.set_ticks_position('bottom')
 
+        return ax
+    
+    def _simulate_uvvis(self, struct, wavelengths):
         field_generator = fields.plane_wave
-        wavelengths = np.linspace(400, 1000, 200)
         kwargs = dict(theta=0, inc_angle=180)
 
         efield = fields.efield(field_generator,
@@ -87,7 +111,7 @@ class Emulator:
         n1 = n2 = 1.0
         dyads = propagators.DyadsQuasistatic123(n1=n1, n2=n2)
 
-        sim = core.simulation(self.struct, efield, dyads)
+        sim = core.simulation(struct, efield, dyads)
         sim.scatter(verbose=False)
         field_kwargs = tools.get_possible_field_params_spectra(sim)
 
@@ -97,10 +121,10 @@ class Emulator:
         
         abs_ = spectrum.T[2]/np.max(spectrum.T[2])
         
-        return wl, abs_
-        
+        return abs_
+            
     def _get_Iq(self, q, radius):
-        """Obtain a SAS profile using Debye model(?)
+        """Obtain a SAS profile using sasview models
         
         Reproduced from : 
         https://github.com/SasView/sasmodels/blob/462a07ed6413ea731e6a4f9f0a5edb2c42dcda00/sasmodels/models/_spherepy.py#L82
@@ -117,29 +141,58 @@ class Emulator:
         
         return Iq
         
-    def get_saxs(self):
+    def _make_polydisperse(self, F, x):
+        pdf = self.radii_dist.pdf(self.radii_nrs)
+        integrand = np.asarray([F[i]*pdf[i] for i in range(len(self.radii_nrs))])
+        indx = np.argsort(self.radii)
+        integral = np.asarray([np.trapz(integrand[indx,i], x = self.radii[indx]) for i in range(len(x))])
+        
+        # obtain the scale parameter
+        # It is not possible to assess the scale value uniformly across SAS and UVVis modelling
+        # so this is set to one for simplicity
+        scale = 1.0
+        
+        return scale*integral  
+    
+    def _average_profiles(self, F, x):
+        
+        return np.mean(np.asarray(F), axis=0)
+    
+               
+    def get_spectrum(self, n_samples=50):
+        """ Obtain a simulated absorption spectra for a hexagonal nanorod mesh
+        """
+        wl = np.linspace(400, 1000, n_samples)
+        if self.spatial:
+            struct = structures.struct(self.step, self.geometry, 
+                self.material, verbose=False)
+            
+            abs_ = self._simulate_uvvis(struct,wavelengths)
+            
+            return wl, abs_
+        else:
+            abs_all = []
+            for geom in self.geometry:
+                struct = structures.struct(self.step, geom, 
+                self.material, verbose=False)
+                abs_ = self._simulate_uvvis(struct, wl)
+                abs_all.append(abs_)
+                
+            abs_pd = self.make_polydisperse(abs_all, wl)
+                
+            return wl, abs_pd
+
+    def get_saxs(self, n_samples=200):
         """Obtain a SAS profile with polydispersity
         
         Implemented following the description provided in:
         https://www.sasview.org/docs/user/qtgui/Perspectives/Fitting/pd/polydispersity.html
         """
-        q = np.logspace(np.log10(1e-3), np.log10(1), 200)
-        radii = self.step*self.radii
-        Iqs = [self._get_Iq(q, ri) for ri in radii]
-        pdf = [self.radii_dist.pdf(ri) for ri in self.radii]
-        integrand = np.asarray([Iqs[i]*pdf[i] for i in range(len(self.radii))])
-        indx = np.argsort(radii)
-        pq = np.asarray([np.trapz(integrand[indx,i], x = radii[indx]) for i in range(len(q))])
+        q = np.logspace(np.log10(1e-3), np.log10(1), n_samples)
+        Iqs = [self._get_Iq(q, ri) for ri in self.radii]
+        Iq_pd = self.make_polydisperse(Iqs, q)
         
-        # obtain the scale parameter
-        V_mean = (4/3)*np.pi*((self.step*self.r_mu)**3)
-        V_occupied = np.sum([(4/3)*np.pi*(ri**3) for ri in radii])
-        lengths = self.geometry.max(axis=0) - self.geometry.min(axis=0)
-        V_total = np.prod(lengths) 
-        
-        scale = V_occupied/(V_total*V_mean)
-        
-        return q, scale*pq
+        return q, Iq_pd
         
         
         
