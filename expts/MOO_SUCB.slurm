@@ -6,7 +6,7 @@
 #SBATCH --gres=gpu:P100:1
 #SBATCH --nodes=1   
 #SBATCH --ntasks-per-node=12
-#SBATCH --time=4:00:00
+#SBATCH --time=2:00:00
 #SBATCH --mem=100G
 #SBATCH --chdir=/gscratch/scrubbed/kiranvad/Genetic_Algorithm
 #SBATCH --output=expts/joblogs/pred_MOO_SUCB.out

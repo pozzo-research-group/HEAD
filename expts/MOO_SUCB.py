@@ -43,7 +43,7 @@ N_UVVIS_SAMPLES = 50
 N_SAS_SAMPLES = 50
 NUM_GRID_PERDIM = 20
 BATCH_SIZE = 5
-N_ITERATIONS = 2
+N_ITERATIONS = 25
 R_mu = 20
 R_sigma = 1e-2
 
@@ -234,16 +234,22 @@ plt.close()
 model.eval()
 model.likelihood.eval()
 XX, YY = grid.mesh
-test_x = np.vstack(map(np.ravel, [XX, YY])).T
-observed_pred = model.likelihood(model(torch.from_numpy(test_x)))
-f1, f2 = observed_pred.mean.detach().numpy()
+with torch.no_grad():
+	test_x = np.vstack(map(np.ravel, [XX, YY])).T
+	test_x = torch.from_numpy(test_x).to(**tkwargs)
+	observed_pred = model.likelihood(model(test_x))
+	f1, f2 = observed_pred.mean.detach().cpu().numpy()
 
 fig, axs = plt.subplots(1,2,figsize=(5*2, 5))
-for ax, f in zip(axs,[f1,f2]):
-    sc = ax.contourf(XX,YY,f.reshape(100,100))
+objective_names = ['SAS', 'UVVis']
+for i, (ax, f) in enumerate(zip(axs,[f1,f2])):
+    sc = ax.contourf(XX,YY,f.reshape(NUM_GRID_PERDIM,NUM_GRID_PERDIM))
     fig.colorbar(sc, ax=ax)
-    ax.scatter(train_x[:,0], train_x[:,1], c=batch_number, cmap='bwr')
-plt.show()
+    ax.scatter(train_x[:,0].cpu().numpy(), train_x[:,1].cpu().numpy(), 
+    c=batch_number, cmap='bwr')
+    ax.set_title(objective_names[i])
+plt.savefig(savedir + '/objectives.png', bbox_inches='tight')
+plt.close()
 
 # plot optimal curves
 opt_obj, opt_x = train_obj.max(axis=0)
