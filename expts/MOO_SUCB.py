@@ -33,16 +33,19 @@ from head.metrics import euclidean_dist
 from botorch.models.gp_regression import SingleTaskGP
 from botorch.models.transforms.outcome import Standardize
 from gpytorch.mlls.exact_marginal_log_likelihood import ExactMarginalLogLikelihood
-from botorch.utils.multi_objective.box_decompositions.non_dominated import NondominatedPartitioning
-from botorch.acquisition.multi_objective.monte_carlo import qExpectedHypervolumeImprovement
-from botorch.sampling.samplers import SobolQMCNormalSampler
-from botorch.optim.optimize import optimize_acqf_discrete
-from botorch.utils.transforms import unnormalize
 from botorch import fit_gpytorch_model
-from botorch.acquisition.monte_carlo import qExpectedImprovement
-from botorch.utils.multi_objective.pareto import is_non_dominated
-from botorch.utils.multi_objective.hypervolume import Hypervolume
+from botorch.optim.optimize import optimize_acqf_discrete
+from botorch.acquisition.monte_carlo import qUpperConfidenceBound
+from botorch.acquisition.objective import LinearMCObjective
 from matplotlib.cm import ScalarMappable
+
+N_UVVIS_SAMPLES = 50
+N_SAS_SAMPLES = 50
+NUM_GRID_PERDIM = 20
+BATCH_SIZE = 5
+N_ITERATIONS = 2
+R_mu = 20
+R_sigma = 1e-2
 
 # In[2]:
 
@@ -51,17 +54,15 @@ We simulate a target spectrum with a fixed number of spehre's with
 radii sampled from a narrow lognormal distribution
 """
 T0 = time.time()
-savedir = '../figures/MOO/'
+savedir = '../figures/MOO_SUCB/'
 if  os.path.exists(savedir):
 	shutil.rmtree(savedir)
 os.makedirs(savedir)
 
 sim = head.Emulator()
-N_UVVIS_SAMPLES = 50
-N_SAS_SAMPLES = 50
+
 fig, axs = plt.subplots(1,3,figsize=(4*3,4))
-R_mu = 20
-R_sigma = 1e-2
+
 sim.make_structure(r_mu=R_mu,r_sigma=R_sigma)
 sim.plot_radii(axs[0])
 axs[0].set_xlabel('radius')
@@ -88,9 +89,8 @@ create a search space as a grid of mu and sigma values of lognormal radii distri
 
 """
 
-NUM = 20
-X = np.linspace(10,30, num=NUM) 
-Y = np.linspace(1e-3,1, num=NUM)
+X = np.linspace(10,30, num=NUM_GRID_PERDIM) 
+Y = np.linspace(1e-3,1, num=NUM_GRID_PERDIM)
 grid = head.Grid(X,Y)
 fig, ax = plt.subplots()
 ax.scatter(grid.points[:,0], grid.points[:,1], label='Grid points')
@@ -114,7 +114,7 @@ def oracle(x):
     wl, Ii = sim.get_spectrum(n_samples=N_UVVIS_SAMPLES)
     dist_sas = euclidean_dist(np.log10(si),np.log10(st))
     dist_uvvis = euclidean_dist(Ii,It)
-    return torch.from_numpy(np.asarray([-dist_sas, -dist_uvvis]))
+    return torch.from_numpy(np.asarray([dist_sas, dist_uvvis]))
 
 def batch_oracle(x):
     out = []
@@ -130,9 +130,7 @@ problem = lambda s : batch_oracle(s)
 ref_point = torch.tensor([0,0]).to(**tkwargs)
 
 
-# In[6]:
-
-
+# sample initial data
 def generate_initial_data(n=6):
     points = torch.from_numpy(grid.points)
     soboleng = torch.quasirandom.SobolEngine(dimension=1)
@@ -160,32 +158,13 @@ def initialize_model(train_x, train_obj):
 
 mll, model = initialize_model(train_x, train_obj)
 
-
-# In[8]:
-
-
 # 3. Define acqusition function
 
-partitioning = NondominatedPartitioning(ref_point=ref_point, Y=train_obj)
-MC_SAMPLES = 128
-sampler = SobolQMCNormalSampler(num_samples=MC_SAMPLES)
-
-
-acq_fun = lambda model: qExpectedHypervolumeImprovement(
-    model=model,
-    ref_point=ref_point.tolist(),  # use known reference point 
-    partitioning=partitioning,
-    sampler=sampler,
-)
-
-
-# In[9]:
+obj = LinearMCObjective(weights=torch.tensor([0.5, 0.5]).to(**tkwargs))
+acq_fun = lambda model: qUpperConfidenceBound(model, beta=0.1, objective=obj)
 
 
 # 4. define a optimization routine for acqusition function 
-
-
-BATCH_SIZE = 5
 
 def selector(f, q = BATCH_SIZE):
     choices = torch.from_numpy(grid.points).to(**tkwargs)
@@ -198,31 +177,11 @@ def selector(f, q = BATCH_SIZE):
     return new_x, new_obj
 
 
-# In[10]:
-
-
 # 5. define the opitmization loop
 
 torch.manual_seed(0)
 
-
-N_ITERATIONS = 25
-
 assert len(grid)>(BATCH_SIZE*N_ITERATIONS + N_INIT_SAMPLES) ,"Not enough samples in the grid"
-
-verbose = False
-hv = Hypervolume(ref_point=ref_point)
-
-hvs_all = []
-hvs = []
-
-# compute pareto front
-pareto_mask = is_non_dominated(train_obj)
-pareto_y = train_obj[pareto_mask]
-
-# compute hypervolume
-volume = hv.compute(pareto_y)
-hvs.append(volume)
 
 # run N_ITERATIONS rounds of BayesOpt after the initial random batch
 for iteration in range(1, N_ITERATIONS + 1):    
@@ -240,14 +199,6 @@ for iteration in range(1, N_ITERATIONS + 1):
     train_x = torch.cat([train_x, new_x])
     train_obj = torch.cat([train_obj, new_obj])
 
-    # compute pareto front
-    pareto_mask = is_non_dominated(train_obj)
-    pareto_y = train_obj[pareto_mask]
-    
-    # compute hypervolume
-    volume = hv.compute(pareto_y)
-    hvs.append(volume)
-
     # reinitialize the models so they are ready for fitting on next iteration
     # Note: we find improved performance from not warm starting the model hyperparameters
     # using the hyperparameters from the previous iteration
@@ -256,11 +207,7 @@ for iteration in range(1, N_ITERATIONS + 1):
     best = train_obj.max(axis=0).values
     print('Best SAS distance : %.2f, Best UVVis distance : %.2f'%(best[0], best[1]))
 
-    hvs_all.append(hvs)
-
-
-# In[11]:
-
+# Plot paretofront
 
 fig, axes = plt.subplots(1, 1)
 cm = plt.cm.get_cmap('viridis')
@@ -283,26 +230,23 @@ cbar.ax.set_title("Iteration")
 plt.savefig(savedir + '/paretofront.png', bbox_inches='tight')
 plt.close()
 
-# In[13]:
+# plot the model
+model.eval()
+model.likelihood.eval()
+XX, YY = grid.mesh
+test_x = np.vstack(map(np.ravel, [XX, YY])).T
+observed_pred = model.likelihood(model(torch.from_numpy(test_x)))
+f1, f2 = observed_pred.mean.detach().numpy()
 
+fig, axs = plt.subplots(1,2,figsize=(5*2, 5))
+for ax, f in zip(axs,[f1,f2]):
+    sc = ax.contourf(XX,YY,f.reshape(100,100))
+    fig.colorbar(sc, ax=ax)
+    ax.scatter(train_x[:,0], train_x[:,1], c=batch_number, cmap='bwr')
+plt.show()
 
-iters = np.arange(N_ITERATIONS+1) * BATCH_SIZE
-
-fig, ax = plt.subplots()
-
-ax.plot(
-    iters, np.asarray(hvs_all).mean(axis=0), linewidth=1.5,
-)
-
-ax.set(xlabel='number of observations (beyond initial points)', ylabel='Hypervolume')
-plt.savefig(savedir + '/hypervolume.png', bbox_inches='tight')
-plt.close()
-
-
-# In[18]:
-
-
-opt_x, opt_obj = selector(acquisition,q=1)
+# plot optimal curves
+opt_obj, opt_x = train_obj.max(axis=0)
 opt = opt_x.cpu().numpy().squeeze()
 fig, axs = plt.subplots(1,3,figsize=(4*3,4))
 sim.make_structure(r_mu=opt[0],r_sigma=opt[1])
@@ -322,8 +266,8 @@ axs[2].plot(wl,It, label='Target')
 axs[1].legend()
 plt.savefig(savedir + '/optimums.png', bbox_inches='tight')
 plt.close()
-print('Best SAS distance : %.2f, Best UVVis distance : %.2f'%(opt_obj.squeeze()[0], opt_obj.squeeze()[1]))
 
+print('Best SAS distance : %.2f, Best UVVis distance : %.2f'%(opt_obj.squeeze()[0], opt_obj.squeeze()[1]))
 print('Time elapsed %.2f'%(time.time()-T0))
 
 

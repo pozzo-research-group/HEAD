@@ -27,7 +27,7 @@ sim = Emulator(use_mean=False)
 
 def run(mu, sigma, ind):
     fig, axs = plt.subplots(1,3,figsize=(4*3,4))
-	fig.subplots_adjust(wspace=0.5)
+    fig.subplots_adjust(wspace=0.5)
     sim.make_structure(r_mu=mu,r_sigma=sigma)
     sim.plot_radii(axs[0])
     axs[0].set_xlabel('radius')
@@ -42,10 +42,9 @@ def run(mu, sigma, ind):
     wl, abs_ = sim.get_spectrum(n_samples=100)
     axs[2].plot(wl, abs_)
     plt.setp(axs[2], xlabel=r'$\lambda$ (nm)', ylabel='abs (a.u.)')
-
-	fig.suptitle('r = '+','.join('%.2f'%i for i in sim.step*sim.radii))
-	plt.savefig(savedir + '/%d.png'%ind, bbox_inches='tight')
-	plt.close()
+    fig.suptitle('r = '+','.join('%.2f'%i for i in sim.step*sim.radii))
+    plt.savefig(savedir + '/%d.png'%ind, bbox_inches='tight')
+    plt.close()
 
 for i, point in enumerate(grid):
 	run(point[0],point[1],i)

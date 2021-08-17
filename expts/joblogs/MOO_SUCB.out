@@ -1,0 +1,53 @@
+Generated 10 samples randomly torch.Size([10, 2]) torch.Size([10, 2])
+Iteration : 1/25
+Best SAS distance : -0.99, Best UVVis distance : -0.26
+Iteration : 2/25
+Best SAS distance : -0.87, Best UVVis distance : -0.06
+Iteration : 3/25
+Best SAS distance : -0.87, Best UVVis distance : -0.00
+Iteration : 4/25
+Best SAS distance : -0.87, Best UVVis distance : -0.00
+Iteration : 5/25
+Best SAS distance : -0.87, Best UVVis distance : -0.00
+Iteration : 6/25
+Best SAS distance : -0.87, Best UVVis distance : -0.00
+Iteration : 7/25
+Best SAS distance : -0.87, Best UVVis distance : -0.00
+Iteration : 8/25
+Best SAS distance : -0.87, Best UVVis distance : -0.00
+Iteration : 9/25
+Best SAS distance : -0.87, Best UVVis distance : -0.00
+Iteration : 10/25
+Best SAS distance : -0.87, Best UVVis distance : -0.00
+Iteration : 11/25
+Best SAS distance : -0.87, Best UVVis distance : -0.00
+Iteration : 12/25
+Best SAS distance : -0.42, Best UVVis distance : -0.00
+Iteration : 13/25
+Best SAS distance : -0.42, Best UVVis distance : -0.00
+Iteration : 14/25
+Best SAS distance : -0.42, Best UVVis distance : -0.00
+Iteration : 15/25
+Best SAS distance : -0.42, Best UVVis distance : -0.00
+Iteration : 16/25
+Best SAS distance : -0.42, Best UVVis distance : -0.00
+Iteration : 17/25
+Best SAS distance : -0.42, Best UVVis distance : -0.00
+Iteration : 18/25
+Best SAS distance : -0.42, Best UVVis distance : -0.00
+Iteration : 19/25
+Best SAS distance : -0.42, Best UVVis distance : -0.00
+Iteration : 20/25
+Best SAS distance : -0.40, Best UVVis distance : -0.00
+Iteration : 21/25
+Best SAS distance : -0.40, Best UVVis distance : -0.00
+Iteration : 22/25
+Best SAS distance : -0.40, Best UVVis distance : -0.00
+Iteration : 23/25
+Best SAS distance : -0.40, Best UVVis distance : -0.00
+Iteration : 24/25
+Best SAS distance : -0.40, Best UVVis distance : -0.00
+Iteration : 25/25
+Best SAS distance : -0.40, Best UVVis distance : -0.00
+Best SAS distance : -2.32, Best UVVis distance : -0.33
+Time elapsed 1428.19
