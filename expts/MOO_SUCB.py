@@ -39,13 +39,16 @@ from botorch.acquisition.monte_carlo import qUpperConfidenceBound
 from botorch.acquisition.objective import LinearMCObjective
 from matplotlib.cm import ScalarMappable
 
-N_UVVIS_SAMPLES = 50
-N_SAS_SAMPLES = 50
+N_UVVIS_SAMPLES = 100
+N_SAS_SAMPLES = 200
 NUM_GRID_PERDIM = 20
 BATCH_SIZE = 5
-N_ITERATIONS = 25
+N_ITERATIONS = 4
 R_mu = 20
 R_sigma = 1e-2
+
+expt = {}
+EXPT_ID = 0
 
 # In[2]:
 
@@ -108,12 +111,16 @@ def oracle(x):
     Uses the simulator sim to generate response spectra at a given locations
     and return a similarity score to target spectra
     """
+    global EXPT_ID
     x_np = x.cpu().numpy()
     sim.make_structure(r_mu=x_np[0],r_sigma=x_np[1])
     q, si = sim.get_saxs(n_samples=N_SAS_SAMPLES)
     wl, Ii = sim.get_spectrum(n_samples=N_UVVIS_SAMPLES)
     dist_sas = euclidean_dist(np.log10(si),np.log10(st))
     dist_uvvis = euclidean_dist(Ii,It)
+    expt[EXPT_ID] = [(q,si,dist_sas),(wl,Ii, dist_uvvis)]
+    EXPT_ID += 1
+    
     return torch.from_numpy(np.asarray([dist_sas, dist_uvvis]))
 
 def batch_oracle(x):
@@ -247,33 +254,51 @@ for i, (ax, f) in enumerate(zip(axs,[f1,f2])):
     fig.colorbar(sc, ax=ax)
     ax.scatter(train_x[:,0].cpu().numpy(), train_x[:,1].cpu().numpy(), 
     c=batch_number, cmap='bwr')
+    ax.scatter(R_mu,R_sigma, marker='x', color='k')
     ax.set_title(objective_names[i])
 plt.savefig(savedir + '/objectives.png', bbox_inches='tight')
 plt.close()
 
 # plot optimal curves
-opt_obj, opt_x = train_obj.max(axis=0)
-opt = opt_x.cpu().numpy().squeeze()
+train_acq = acquisition(train_x.unsqueeze(1))
+best_obj, best_ind = train_acq.max(axis=0)
+opt = train_x[best_ind].cpu().numpy().squeeze()
 fig, axs = plt.subplots(1,3,figsize=(4*3,4))
+line_target = sim.plot_radii(axs[0])
 sim.make_structure(r_mu=opt[0],r_sigma=opt[1])
-sim.plot_radii(axs[0])
+line_best = sim.plot_radii(axs[0])
+axs[0].legend([line_target, line_best],['Target', 'Best'])
 axs[0].set_xlabel('radius')
 axs[0].set_ylabel('Probability density')
 
 q, sopt = sim.get_saxs(n_samples=N_SAS_SAMPLES)
-axs[1].loglog(q, sopt, label='Optimal')
 axs[1].loglog(q, st, label='Target')
+axs[1].loglog(q, sopt, label='Optimal')
 axs[1].legend()
-fig.suptitle('r = '+','.join('%.2f'%i for i in sim.radii))
 
 wl, Iopt = sim.get_spectrum(n_samples=N_UVVIS_SAMPLES)
-axs[2].plot(wl,Iopt, label='Optimal')
 axs[2].plot(wl,It, label='Target')
-axs[1].legend()
+axs[2].plot(wl,Iopt, label='Optimal')
+axs[2].legend()
+
+fig.suptitle('r = '+','.join('%.2f'%i for i in sim.radii))
 plt.savefig(savedir + '/optimums.png', bbox_inches='tight')
 plt.close()
 
-print('Best SAS distance : %.2f, Best UVVis distance : %.2f'%(opt_obj.squeeze()[0], opt_obj.squeeze()[1]))
+# plot batchwise trace
+for b in np.unique(batch_number):
+    fig, axs = plt.subplots(1,2,figsize=(5*2, 5))
+    fig.suptitle('Batch number %d'%b)
+    for i in np.argwhere(batch_number==b).squeeze():
+        sas = expt[i][0]
+        uvvis = expt[i][1]
+        axs[0].loglog(sas[0], sas[1], label='%.2f'%sas[2])
+        axs[1].plot(uvvis[0], uvvis[1], label='%.2f'%uvvis[2])
+    axs[0].legend()
+    axs[1].legend()
+    plt.savefig(savedir + '/trace_b%d.png'%b, bbox_inches='tight')
+    plt.close()
+
 print('Time elapsed %.2f'%(time.time()-T0))
 
 

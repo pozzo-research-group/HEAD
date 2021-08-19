@@ -93,14 +93,14 @@ class Emulator:
         x_max =  stats.lognorm.ppf(0.99, **self.radii_dist_kwargs)
         x = np.linspace(x_min, x_max, 1000)
         
-        ax.plot(x, self.radii_dist.pdf(x), 'k-', lw=2)
+        line = ax.plot(x, self.radii_dist.pdf(x), lw=2)
         
         ax.spines['right'].set_visible(False)
         ax.spines['top'].set_visible(False)
         ax.yaxis.set_ticks_position('left')
         ax.xaxis.set_ticks_position('bottom')
 
-        return ax
+        return line
     
     def _simulate_uvvis(self, struct, wavelengths):
         field_generator = fields.plane_wave
