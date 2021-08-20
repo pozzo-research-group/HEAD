@@ -12,10 +12,14 @@ import warnings
 warnings.filterwarnings("ignore")
 
 class Emulator:
-    def __init__(self, use_mean = True):
+    def __init__(self, use_mean = True, n_structures=None):
         
         # randmoly select number of structures
-        self.n_structures = stats.randint.rvs(2,6,size=1)[0]
+        if n_structures is None:
+            self.n_structures = stats.randint.rvs(2,6,size=1)[0]
+        else:
+            self.n_structures = n_structures
+            
         rng = np.random.default_rng()
         self.XY_ = rng.standard_normal(size=(self.n_structures, 2))
 
@@ -159,7 +163,7 @@ class Emulator:
         return np.mean(np.asarray(F), axis=0)
     
                
-    def get_spectrum(self, n_samples=50):
+    def get_spectrum(self, n_samples=10):
         """ Obtain a simulated absorption spectra for a hexagonal nanorod mesh
         """
         wl = np.linspace(400, 1000, n_samples)

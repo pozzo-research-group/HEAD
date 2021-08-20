@@ -132,3 +132,4 @@ dmypy.json
 data/2021_June_USAXS
 figures/
 figures/*.png
+expts/
