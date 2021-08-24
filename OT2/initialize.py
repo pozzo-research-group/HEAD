@@ -17,6 +17,8 @@ def make_target():
 	wl, It = sim.get_spectrum(n_samples=int(config['Modelling']['n_uvvis_samples']))
 	np.savetxt(savedir+'target_saxs.txt', st, delimiter=',')
 	np.savetxt(savedir+'target_uvvis.txt', It, delimiter=',')
+	np.savetxt(savedir+'q.txt', q, delimiter=',')
+	np.savetxt(savedir+'wl.txt', wl, delimiter=',')
 	
 if __name__=='__main__':
 	config = ConfigParser()
