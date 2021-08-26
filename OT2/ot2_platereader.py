@@ -39,7 +39,7 @@ if __name__=='__main__':
 	    np.savetxt(spectra_dir+'/%d_saxs.txt'%i, si, delimiter=',')
 	    np.savetxt(spectra_dir+'/%d_uvvis.txt'%i, Ii, delimiter=',')
 
-	print(iteration)
+	print('spectra collected using a simulator for iteration', iteration)
 	
 	if iteration==0:
 		train_obj = ground_truth(spectra_dir)

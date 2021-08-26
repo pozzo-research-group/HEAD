@@ -62,7 +62,8 @@ def selector(f,q):
         choices = choices
     )
     torch.save(new_x, savedir+'candidates_%d.pt'%iteration)
-  
+    np.savetxt(savedir+'candidates_%d.txt'%iteration, new_x.cpu().numpy())
+    
     return new_x
 
 

@@ -10,7 +10,7 @@ import head
 plt.rcParams.update({"text.usetex": True,
                      "axes.spines.right" : False,
                      "axes.spines.top" : False,
-                     "font.size": 22
+                     "font.size": 18
                     }
                    )
 
@@ -95,6 +95,8 @@ objective = ScalarizedObjective(weights=torch.tensor([0.5, 0.5]).to(**tkwargs))
 
 opt_x = selector(PosteriorMean(model, objective=objective), q=1)
 opt_x = opt_x.cpu().numpy().squeeze()
+
+print('Best sample from the optimization :', opt_x)
 
 fig, axs = plt.subplots(1,3,figsize=(4*3,4))
 

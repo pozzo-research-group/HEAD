@@ -39,6 +39,7 @@ if __name__=='__main__':
     grid = np.loadtxt(savedir+'grid.txt', delimiter=',')    
     train_x = generate_initial_data(n=int(config['BO']['n_init_samples']))
     torch.save(train_x, savedir+'candidates_%d.pt'%iteration)
+    np.savetxt(savedir+'candidates_%d.txt'%iteration, train_x.cpu().numpy())
     torch.save(train_x, savedir+'train_x.pt')
     print('Generated %d samples randomly'%int(config['BO']['n_init_samples']), 
         train_x.shape)
