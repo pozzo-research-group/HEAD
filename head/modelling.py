@@ -12,10 +12,14 @@ import warnings
 warnings.filterwarnings("ignore")
 
 class Emulator:
-    def __init__(self, use_mean = True):
+    def __init__(self, use_mean = True, n_structures=None):
         
         # randmoly select number of structures
-        self.n_structures = stats.randint.rvs(2,6,size=1)[0]
+        if n_structures is None:
+            self.n_structures = stats.randint.rvs(2,6,size=1)[0]
+        else:
+            self.n_structures = n_structures
+            
         rng = np.random.default_rng()
         self.XY_ = rng.standard_normal(size=(self.n_structures, 2))
 
@@ -93,14 +97,14 @@ class Emulator:
         x_max =  stats.lognorm.ppf(0.99, **self.radii_dist_kwargs)
         x = np.linspace(x_min, x_max, 1000)
         
-        line = ax.plot(x, self.radii_dist.pdf(x), lw=2)
+        ax.plot(x, self.radii_dist.pdf(x), 'k-', lw=2)
         
         ax.spines['right'].set_visible(False)
         ax.spines['top'].set_visible(False)
         ax.yaxis.set_ticks_position('left')
         ax.xaxis.set_ticks_position('bottom')
 
-        return line
+        return ax
     
     def _simulate_uvvis(self, struct, wavelengths):
         field_generator = fields.plane_wave
@@ -159,7 +163,7 @@ class Emulator:
         return np.mean(np.asarray(F), axis=0)
     
                
-    def get_spectrum(self, n_samples=50):
+    def get_spectrum(self, n_samples=10):
         """ Obtain a simulated absorption spectra for a hexagonal nanorod mesh
         """
         wl = np.linspace(400, 1000, n_samples)
