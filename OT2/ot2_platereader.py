@@ -4,9 +4,6 @@ from configparser import ConfigParser
 import os, sys
 import torch
 
-sys.path.append(os.path.join(os.path.dirname('./utils.py')))
-from utils import ground_truth
-
 tkwargs = {
         "dtype": torch.double,
         "device": torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -42,5 +39,7 @@ if __name__=='__main__':
 	print('spectra collected using a simulator for iteration', iteration)
 	
 	if iteration==0:
-		train_obj = ground_truth(spectra_dir)
+		sys.path.append(os.path.join(os.path.dirname('./utils.py')))
+		from utils import ground_truth_moo
+		train_obj = ground_truth_moo(spectra_dir)
 		torch.save(train_obj, savedir+'train_obj.pt')

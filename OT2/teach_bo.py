@@ -5,7 +5,7 @@ from configparser import ConfigParser
 import torch
 
 sys.path.append(os.path.join(os.path.dirname('./utils.py')))
-from utils import ground_truth
+from utils import ground_truth_moo
 
 sys.path.append(os.path.join(os.path.dirname('./run_bo.py')))
 from run_bo import initialize_model
@@ -30,7 +30,7 @@ if __name__=='__main__':
     
     # optimize acquisition functions and get new observations
     new_x = torch.load(savedir+'candidates_%d.pt'%iteration, map_location=tkwargs['device'])
-    new_obj = ground_truth(spectra_dir)
+    new_obj = ground_truth_moo(spectra_dir)
 
     # update training points
     train_x = torch.cat([train_x, new_x])
