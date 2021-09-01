@@ -1,6 +1,6 @@
 matplotlib
 modAL
-numpy
+numpy<=1.20
 pandas
 scikit-learn
 scipy

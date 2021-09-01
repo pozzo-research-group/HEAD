@@ -1,5 +1,7 @@
 Perfoming optimization with a a robot requires users to periodically collect data and update models.
-This directory shows an example of performing multi-objective optimization using Bayesian Opitmization techniques to achieve a target shape spectra (SAS and UV-Vis in this case)
+This directory shows an example of performing multi-objective optimization using Bayesian Opitmization techniques to achieve a target shape spectra (SAS and UV-Vis in this case) with in a grid design space comprising of mean and variance of log-normal distribution for the radii of spehres.
+The geometry is simulated in pyGDM2 for uv-vis and an analytical formula from sasmodels package is used for SAXS profile. 
+The modelling part is implemented in the `head/modelling.py`
 
 Use the following protocol to perform a BO run:
 
@@ -13,6 +15,7 @@ cd OT2
 python3 initialize.py
 python3 generate_random_batch.py
 python3 ot2_platereader.py
+python3 teach_bo.py
 ```
 2. Run a single BO iteration using the following
 ```bash
@@ -29,3 +32,5 @@ In practice, you would implemente a `ot2_platereader.py` file that simply conver
 python3 make_plots.py
 
 ```
+
+4. If you have exhausted the number of iterations in `n_iterations`, running `run_bo.py` would return the current best sample from the optimization
