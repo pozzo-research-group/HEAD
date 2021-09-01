@@ -3,6 +3,7 @@ import head
 from configparser import ConfigParser
 import os, sys
 import torch
+import logging
 
 tkwargs = {
         "dtype": torch.double,
@@ -13,8 +14,11 @@ config = ConfigParser()
 config.read("config.ini")
 savedir = config['Default']['savedir']
 iteration = int(config['BO']['iteration'])
-print('Generating spectra from %d'%iteration)
+logging.info('Generating spectra from %d'%iteration)
 spectra_dir = savedir+'spectra_%d'%iteration
+
+logging.basicConfig(level=logging.INFO, 
+	format='%(asctime)s%(message)s ')
 
 if os.path.exists(spectra_dir):
 	raise RuntimeError('It appears that spectra for %d iteration has already been collected'%iteration)
@@ -36,10 +40,5 @@ if __name__=='__main__':
 	    np.savetxt(spectra_dir+'/%d_saxs.txt'%i, si, delimiter=',')
 	    np.savetxt(spectra_dir+'/%d_uvvis.txt'%i, Ii, delimiter=',')
 
-	print('spectra collected using a simulator for iteration', iteration)
+	logging.info('spectra collected using a simulator for iteration', iteration)
 	
-	if iteration==0:
-		sys.path.append(os.path.join(os.path.dirname('./utils.py')))
-		from utils import ground_truth_moo
-		train_obj = ground_truth_moo(spectra_dir)
-		torch.save(train_obj, savedir+'train_obj.pt')

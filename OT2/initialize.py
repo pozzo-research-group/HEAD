@@ -2,6 +2,13 @@ import head
 import numpy as np
 from configparser import ConfigParser
 import os
+import logging
+config = ConfigParser()
+config.read('config.ini')
+savedir = config['Default']['savedir']
+
+logging.basicConfig(level=logging.INFO, 
+	format='%(asctime)s%(message)s \t')
 
 def make_grid():
 	X = np.linspace(10,30, num=int(config['Default']['num_grid_perdim'])) 
@@ -21,16 +28,16 @@ def make_target():
 	np.savetxt(savedir+'wl.txt', wl, delimiter=',')
 	
 if __name__=='__main__':
-	config = ConfigParser()
-	config.read('config.ini')
-	savedir = config['Default']['savedir']
 	
 	if  os.path.exists(savedir):
-		print('Required directory already exists...\n'
+		logging.error('Required directory already exists...\n'
 			'Confirm that this is not a duplicate run, manually delete the directory and re-run again')
 	else:
 		os.makedirs(savedir)
+		logging.info('Made the directory for this experiment %s'%savedir)
+		logging.info('Making the grid using')
 		make_grid()
+		logging.info('Making the target responses using the Emulator')
 		make_target()
 		config.set('BO', 'iteration', '0')
 		with open('config.ini', 'w') as configfile:

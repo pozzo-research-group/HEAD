@@ -1,5 +1,6 @@
 import torch
 torch.manual_seed(0)
+import json
 from configparser import ConfigParser
 from botorch.models.gp_regression import SingleTaskGP
 from botorch.models.transforms.outcome import Standardize
@@ -11,6 +12,7 @@ from botorch.acquisition.objective import LinearMCObjective
 
 import os, sys
 import numpy as np
+import logging
 
 tkwargs = {
         "dtype": torch.double,
@@ -21,7 +23,10 @@ config = ConfigParser()
 config.read("config.ini")
 savedir = config['Default']['savedir']
 iteration = int(config['BO']['iteration'])
-    
+
+logging.basicConfig(level=logging.INFO, 
+    format='%(asctime)s%(message)s ')
+        
 # 2. define your model
 def initialize_model(train_x, train_obj):
     # define models for objective and constraint
@@ -47,7 +52,8 @@ def load_models(train_x, train_obj):
     return mll, model
 
 # 3. Define acqusition function
-obj = LinearMCObjective(weights=torch.tensor([0.5, 0.5]).to(**tkwargs))
+weights = json.loads(config['BO']['weights'])
+obj = LinearMCObjective(weights=torch.tensor(weights).to(**tkwargs))
 acq_fun = lambda model: qUpperConfidenceBound(model, beta=0.1, objective=obj)
 
 
@@ -80,23 +86,27 @@ if __name__=='__main__':
     if iteration>n_iterations:
         raise RuntimeError('Maximum number of iterations reached')
     
-    print('Iteration : %d/%d'%(iteration, int(config['BO']['n_iterations'])))
+    logging.info('Iteration : %d/%d'%(iteration, int(config['BO']['n_iterations'])))
 
     # load the train data collected so far
     train_x = torch.load(savedir+'train_x.pt', map_location=tkwargs['device'])
     train_obj = torch.load(savedir+'train_obj.pt', map_location=tkwargs['device'])
+    
+    logging.info('initializing the GP surrogate model using %d samples'%(train_x.shape[0]))
     mll, model = initialize_model(train_x, train_obj)  
      
-
+    logging.info('loadinging the GP surrogate model')
     mll, model = load_models(train_x, train_obj)
     
     # fit the models
+    logging.info('Fitting the GP surrogate model hyper-parameters')
     fit_gpytorch_model(mll)
 
     # define the acquisition modules
     acquisition = acq_fun(model)
 
     # optimize acquisition functions and get new observations
+    logging.info('Selecting the next best samples to query')
     new_x = selector(acquisition, q= int(config['BO']['batch_size']))
     torch.save(new_x, savedir+'candidates_%d.pt'%iteration)
     

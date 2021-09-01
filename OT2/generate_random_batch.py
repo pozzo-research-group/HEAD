@@ -6,6 +6,9 @@ from configparser import ConfigParser
 
 import torch
 import os, sys 
+import logging
+logging.basicConfig(level=logging.INFO, 
+    format='%(asctime)s%(message)s \t')
 
 tkwargs = {
         "dtype": torch.double,
@@ -26,7 +29,7 @@ def generate_initial_data(n=6):
     train_xid = torch.floor(soboleng.draw(n)*len(grid)).to(**tkwargs)
     train_x = points[train_xid.long(),:]
     
-    return torch.squeeze(train_x).to(**tkwargs)
+    return train_x.squeeze().to(**tkwargs)
     
 if __name__=='__main__':
     
@@ -41,9 +44,8 @@ if __name__=='__main__':
     torch.save(train_x, savedir+'candidates_%d.pt'%iteration)
     np.savetxt(savedir+'candidates_%d.txt'%iteration, train_x.cpu().numpy())
     torch.save(train_x, savedir+'train_x.pt')
-    print('Generated %d samples randomly'%int(config['BO']['n_init_samples']), 
-        train_x.shape)
-    print('Collect responses using OT2 and PlateReader...\nIn this case simply run or2_platereader.py')
+    logging.info('Generated %d samples randomly of shape %s'%(int(config['BO']['n_init_samples']),train_x.shape))
+    logging.info('Collect responses using OT2 and PlateReader...\nIn this case simply run or2_platereader.py')
     
     
     

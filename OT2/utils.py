@@ -15,7 +15,6 @@ config = ConfigParser()
 config.read("config.ini")
 savedir = config['Default']['savedir']
 
-
 def ground_truth(dirname):
     files = sorted(glob.glob(dirname+'/*.txt'))
     n_files = len(files)//2
