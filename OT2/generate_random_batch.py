@@ -6,6 +6,12 @@ from configparser import ConfigParser
 
 import torch
 import os, sys 
+
+import yaml
+
+with open(os.path.abspath('./config.yaml'), 'r') as f:
+    config = yaml.load(f, Loader=yaml.FullLoader)
+
 import logging
 logging.basicConfig(level=logging.INFO, 
     format='%(asctime)s%(message)s \t')
@@ -15,13 +21,9 @@ tkwargs = {
         "device": torch.device("cuda" if torch.cuda.is_available() else "cpu"),
     }
 
-config = ConfigParser()
-config.read("config.ini")
 savedir = config['Default']['savedir']
-iteration = int(config['BO']['iteration'])
-
-sys.path.append(os.path.join(os.path.dirname('./utils.py')))
-from utils import ground_truth    
+iteration = config['BO']['iteration']
+   
 
 def generate_initial_data(n=6):
     points = torch.from_numpy(grid)
@@ -33,19 +35,24 @@ def generate_initial_data(n=6):
     
 if __name__=='__main__':
     
-    if not config['BO']['iteration']=='0':
+    if not config['BO']['iteration']==0:
         raise RuntimeError('This experiment has already been initialized...')
-
+        
+    if os.path.exists(savedir+'/candidates_0.pt'):
+        raise RuntimeError('This experiment has already been initialized...')
+        
     problem = lambda s : batch_oracle(s)
     ref_point = torch.tensor([0,0]).to(**tkwargs)
     
     grid = np.loadtxt(savedir+'grid.txt', delimiter=',')    
-    train_x = generate_initial_data(n=int(config['BO']['n_init_samples']))
+    train_x = generate_initial_data(n=config['BO']['n_init_samples'])
+    logging.info('\tInitial random candidate points: %s'%(repr(train_x)))
     torch.save(train_x, savedir+'candidates_%d.pt'%iteration)
     np.savetxt(savedir+'candidates_%d.txt'%iteration, train_x.cpu().numpy())
     torch.save(train_x, savedir+'train_x.pt')
-    logging.info('Generated %d samples randomly of shape %s'%(int(config['BO']['n_init_samples']),train_x.shape))
-    logging.info('Collect responses using OT2 and PlateReader...\nIn this case simply run or2_platereader.py')
-    
+    logging.info('\tGenerated %d samples randomly of shape %s'%(config['BO']['n_init_samples'],repr(train_x.shape)))
+    logging.info('\tCollect responses using OT2 and PlateReader...')
+    logging.info('\tRandom sampling is successful')
+
     
     

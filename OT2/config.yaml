@@ -1,0 +1,21 @@
+BO:
+  batch_size: 5
+  iteration: 8
+  n_init_samples: 5
+  n_iterations: 7
+  objective:
+  - saxs
+  - uvvis
+  weights:
+  - 0.5
+  - 0.5
+Default:
+  num_grid_perdim: 20
+  oracle_call: 1
+  r_mu: 20
+  r_sigma: 1e-2
+  savedir: ./output/
+Modelling:
+  n_sas_samples: 200
+  n_structures: 4
+  n_uvvis_samples: 10

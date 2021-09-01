@@ -1,7 +1,6 @@
 import os, sys, pdb
 import numpy as np
 import glob
-from configparser import ConfigParser
 import matplotlib.pyplot as plt
 from matplotlib.cm import ScalarMappable
 import torch
@@ -15,8 +14,10 @@ plt.rcParams.update({"text.usetex": True,
                     }
                    )
 
-config = ConfigParser()
-config.read("config.ini")
+import yaml
+
+with open(os.path.abspath('./config.yaml'), 'r') as f:
+    config = yaml.load(f, Loader=yaml.FullLoader)
 savedir = config['Default']['savedir']
 figdir = savedir+'figures/'
 
@@ -28,6 +29,10 @@ tkwargs = {
         "device": torch.device("cuda" if torch.cuda.is_available() else "cpu"),
     }
 
+import logging
+logging.basicConfig(level=logging.INFO, 
+	format='%(asctime)s%(message)s \t')
+
 # load all required variables
 train_obj = torch.load(savedir+'train_obj.pt')
 train_x = torch.load(savedir+'train_x.pt')
@@ -38,8 +43,8 @@ from run_bo import load_models
 mll, model = load_models(train_x, train_obj)
 
 batch_number = torch.cat(
-    [torch.zeros(int(config['BO']['n_init_samples'])), 
-    torch.arange(1, int(config['BO']['iteration'])+1).repeat(int(config['BO']['batch_size']), 1).t().reshape(-1)]).numpy()
+    [torch.zeros(config['BO']['n_init_samples']), 
+    torch.arange(1, config['BO']['iteration']+1).repeat(config['BO']['batch_size'], 1).t().reshape(-1)]).numpy()
 
 # 1. Plot paretofront
 def paretofront():
@@ -72,27 +77,41 @@ def trace(objs):
 		wl = np.loadtxt(savedir+'wl.txt', delimiter=',')
 		
 	for b,spectra_dir in enumerate(spectra_files):
-		pdb.set_trace()
+		fig, ax = plt.subplots()
 		Yb = train_obj[batch_number==b].cpu().numpy()
-		fig, axs = plt.subplots(1,len(objs),figsize=(5*len(objs), 5))
-		fig.suptitle('Batch number %d'%b)
-		fig.subplots_adjust(wspace=0.2)
 		files = glob.glob(spectra_dir + '/*.txt')
-		n_files = len(files)//2
-		for i in range(n_files):
-			if 'saxs' in objs:
-				si = np.loadtxt(spectra_dir+'/%d_saxs.txt'%i, delimiter=',')
-				axs[0].loglog(q, si, label='%.2f'%(obj[i,0]))
-			if 'uvvis' in objs:
-				Ii = np.loadtxt(spectra_dir+'/%d_uvvis.txt'%i, delimiter=',')
-				axs[1].plot(wl, Ii, label='%.2f'%(obj[i,1]))
-			if 'dls' in objs:
-				raise NotImplementedError
-	    	
-		for ax in axs:
+		if len(objs)==1:
+			for i, file in enumerate(files):
+				if 'saxs' in objs:
+					si = np.loadtxt(file, delimiter=',')
+					ax.loglog(q,si,label='%.2f'%(Yb[i,0]))
+				elif 'uvvis' in objs:
+					Ii = np.loadtxt(file, delimiter=',')
+					ax.plot(wl, Ii, label='%.2f'%(Yb[i,0]))
+				elif 'dls' in objs:
+					raise NotImplementedError
 			ax.legend()	
-		    
-		plt.savefig(figdir + '/trace_b%d.png'%b, bbox_inches='tight')
+		else:
+			n_files = len(files)//2		
+			fig, axs = plt.subplots(1,len(objs),figsize=(5*len(objs), 5))
+			fig.suptitle('Batch number %d'%b)
+			fig.subplots_adjust(wspace=0.2)
+
+			for i in range(n_files):
+				if 'saxs' in objs:
+					si = np.loadtxt(spectra_dir+'/%d_saxs.txt'%i, delimiter=',')
+					axs[0].loglog(q, si, label='%.2f'%(Yb[i,0]))
+				if 'uvvis' in objs:
+					Ii = np.loadtxt(spectra_dir+'/%d_uvvis.txt'%i, delimiter=',')
+					axs[1].plot(wl, Ii, label='%.2f'%(Yb[i,1]))
+				if 'dls' in objs:
+					raise NotImplementedError
+		    	
+			for ax in axs:
+				ax.legend()	
+		fname = figdir + 'trace_b%d'%b
+		logging.info('\tPlotted batch number %d in %s'%(b, fname))    
+		plt.savefig(fname, bbox_inches='tight')
 		plt.close()
 
 
@@ -112,9 +131,9 @@ def optimal():
 	fig, axs = plt.subplots(1,3,figsize=(4*3,4))
 
 
-	sim = head.Emulator(n_structures=int(config['Modelling']['n_structures']))
+	sim = head.Emulator(n_structures=config['Modelling']['n_structures'])
 
-	sim.make_structure(r_mu=float(config['Default']['r_mu']),
+	sim.make_structure(r_mu=config['Default']['r_mu'],
 		r_sigma=float(config['Default']['r_sigma']))
 	line_target = sim.plot_radii(axs[0])
 
@@ -124,13 +143,13 @@ def optimal():
 	axs[0].set_xlabel('radius')
 	axs[0].set_ylabel('Probability density')
 
-	q, sopt = sim.get_saxs(n_samples=int(config['Modelling']['n_sas_samples']))
+	q, sopt = sim.get_saxs(n_samples=config['Modelling']['n_sas_samples'])
 	st = np.loadtxt(savedir+'target_saxs.txt', delimiter=',')
 	axs[1].loglog(q, st, label='Target')
 	axs[1].loglog(q, sopt, label='Optimal')
 	axs[1].legend()
 
-	wl, Iopt = sim.get_spectrum(n_samples=int(config['Modelling']['n_uvvis_samples']))
+	wl, Iopt = sim.get_spectrum(n_samples=config['Modelling']['n_uvvis_samples'])
 	It = np.loadtxt(savedir+'target_uvvis.txt', delimiter=',')
 	axs[2].plot(wl,It, label='Target')
 	axs[2].plot(wl,Iopt, label='Optimal')
