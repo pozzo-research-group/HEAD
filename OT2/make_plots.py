@@ -100,6 +100,10 @@ def trace(objs):
 			for i in range(n_files):
 				if 'saxs' in objs:
 					si = np.loadtxt(spectra_dir+'/%d_saxs.txt'%i, delimiter=',')
+					try:
+						Yb[i,0]
+					except:
+						pdb.set_trace()
 					axs[0].loglog(q, si, label='%.2f'%(Yb[i,0]))
 				if 'uvvis' in objs:
 					Ii = np.loadtxt(spectra_dir+'/%d_uvvis.txt'%i, delimiter=',')

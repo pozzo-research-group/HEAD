@@ -24,7 +24,7 @@ savedir = config['Default']['savedir']
 
 sys.path.append(os.path.join(os.path.dirname('./utils.py')))
 from utils import logger
-logger = logger('read_saxs')
+logger = logger('teach_bo')
 
 if __name__=='__main__':
         

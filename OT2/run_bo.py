@@ -29,7 +29,7 @@ iteration = config['BO']['iteration']
 
 sys.path.append(os.path.join(os.path.dirname('./utils.py')))
 from utils import logger
-logger = logger('read_saxs')
+logger = logger('run_bo')
         
 # 2. define your model
 def initialize_model(train_x, train_obj):
@@ -95,6 +95,7 @@ if __name__=='__main__':
         from utils import get_best_sofar
         get_best_sofar()
         logger.info('Maximum number of iterations reached')
+        raise RuntimeError
     
     logger.info('Iteration : %d/%d'%(iteration, config['BO']['n_iterations']))
 

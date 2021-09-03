@@ -27,7 +27,7 @@ logger.info('\tGenerating spectra from iteration %d'%iteration)
 spectra_dir = savedir+'spectra_%d'%iteration
 
 if os.path.exists(spectra_dir):
-	logger.info('It appears that spectra for %d iteration has already been collected in '%(iteration, spectra_dir))
+	logger.info('It appears that spectra for %d iteration has already been collected in %s'%(iteration, spectra_dir))
 else:
 	os.makedirs(spectra_dir)
 

@@ -17,15 +17,15 @@ with open(os.path.abspath('./config.yaml'), 'r') as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
     
 savedir = config['Default']['savedir']
+iteration = config['BO']['iteration']
 
 import logging
-
 def logger(name):
-    format = '%(asctime)s %(name)2s %(message)s '
+    format = '%(asctime)s {} %(name)2s %(message)s'.format('Iteration %d :'%iteration)
     logging.basicConfig(level=logging.INFO, 
     format=format,
     filename=savedir + '/log.txt',
-    filemode='w')
+    filemode='a')
 
     console = logging.StreamHandler()
     console.setLevel(logging.INFO)
@@ -115,8 +115,9 @@ def get_best_sofar():
     mll, model = load_models(train_x, train_obj)
     opt_x = selector(PosteriorMean(model, objective=objective), q=1)
     opt_x = opt_x.cpu().numpy().squeeze()
-
-    print('Best sample from the optimization :', opt_x)
+    
+    logger_ = logger('utils')
+    logger_.info('Best sample from the optimization : %s'%opt_x)
 
         
         

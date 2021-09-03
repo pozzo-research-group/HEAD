@@ -1,8 +1,8 @@
 BO:
   batch_size: 5
-  iteration: 7
+  iteration: 3
   n_init_samples: 5
-  n_iterations: 7
+  n_iterations: 2
   objective:
   - saxs
   - uvvis
