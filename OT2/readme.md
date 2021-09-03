@@ -5,7 +5,7 @@ The modelling part is implemented in the `head/modelling.py`
 
 Use the following protocol to perform a BO run:
 
-All the parameters are set with in the `config.ini` file. The variables names there are self-explanatory.
+All the parameters are set with in the `config.yaml` file. The variables names there are self-explanatory.
 
 
 1. Initiate the optimization by randomly sampling in a grid
@@ -15,19 +15,23 @@ cd OT2
 python3 initialize.py
 python3 generate_random_batch.py
 python3 ot2_platereader.py
+python3 read_uvvis.py --xlsx output/uvvis_0.xlsx
+python3 read_saxs.py --xlsx output/saxs_0.xlsx
 python3 teach_bo.py
 ```
 2. Run a single BO iteration using the following
 ```bash
 python3 run_bo.py
 python3 ot2_platereader.py 
+python3 read_uvvis.py --xlsx output/uvvis_$i.xlsx
+python3 read_saxs.py --xlsx output/saxs_$i.xlsx
 python3 teach_bo.py
 
 ```
 
-In practice, you would implemente a `ot2_platereader.py` file that simply converts the data you collected into .txt files of a specific format into folders named `spectra_i` where `i` is the iteration containing `b` batch of samples. 
+In practice, the call to `ot2_platereader.py` would be ignored and we proceed to reading the data using the `read_*.py` files by providing them the `.xlsx` files we saved with spectra/profies in the columns.
 
-3. There's a helper functions that can be used to create some plots but this mainly works with a simulator for now.
+3. There's a helper functions that can be used to create some plots.
 ```bash
 python3 make_plots.py
 

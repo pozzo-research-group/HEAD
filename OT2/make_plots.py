@@ -29,9 +29,9 @@ tkwargs = {
         "device": torch.device("cuda" if torch.cuda.is_available() else "cpu"),
     }
 
-import logging
-logging.basicConfig(level=logging.INFO, 
-	format='%(asctime)s%(message)s \t')
+sys.path.append(os.path.join(os.path.dirname('./utils.py')))
+from utils import logger
+logger = logger('make_plots')
 
 # load all required variables
 train_obj = torch.load(savedir+'train_obj.pt')
@@ -110,24 +110,13 @@ def trace(objs):
 			for ax in axs:
 				ax.legend()	
 		fname = figdir + 'trace_b%d'%b
-		logging.info('\tPlotted batch number %d in %s'%(b, fname))    
+		logger.info('\tPlotted batch number %d in %s'%(b, fname))    
 		plt.savefig(fname, bbox_inches='tight')
 		plt.close()
 
 
 # 3. Plot the optimal curves
 def optimal():
-	from botorch.acquisition import PosteriorMean
-	from botorch.acquisition.objective import ScalarizedObjective
-	sys.path.append(os.path.join(os.path.dirname('./run_bo.py')))
-	from run_bo import selector
-	objective = ScalarizedObjective(weights=torch.tensor([0.5, 0.5]).to(**tkwargs))
-
-	opt_x = selector(PosteriorMean(model, objective=objective), q=1)
-	opt_x = opt_x.cpu().numpy().squeeze()
-
-	print('Best sample from the optimization :', opt_x)
-
 	fig, axs = plt.subplots(1,3,figsize=(4*3,4))
 
 

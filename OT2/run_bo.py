@@ -27,8 +27,9 @@ tkwargs = {
 savedir = config['Default']['savedir']
 iteration = config['BO']['iteration']
 
-logging.basicConfig(level=logging.INFO, 
-    format='%(asctime)s%(message)s ')
+sys.path.append(os.path.join(os.path.dirname('./utils.py')))
+from utils import logger
+logger = logger('read_saxs')
         
 # 2. define your model
 def initialize_model(train_x, train_obj):
@@ -93,31 +94,31 @@ if __name__=='__main__':
         sys.path.append(os.path.join(os.path.dirname('./utils.py')))
         from utils import get_best_sofar
         get_best_sofar()
-        logging.info('Maximum number of iterations reached')
+        logger.info('Maximum number of iterations reached')
     
-    logging.info('\tIteration : %d/%d'%(iteration, config['BO']['n_iterations']))
+    logger.info('Iteration : %d/%d'%(iteration, config['BO']['n_iterations']))
 
     # load the train data collected so far
     train_x = torch.load(savedir+'train_x.pt', map_location=tkwargs['device'])
     train_obj = torch.load(savedir+'train_obj.pt', map_location=tkwargs['device'])
     
-    logging.info('\tinitializing the GP surrogate model using %d samples'%(train_x.shape[0]))
+    logger.info('initializing the GP surrogate model using %d samples'%(train_x.shape[0]))
     mll, model = initialize_model(train_x, train_obj)  
      
-    logging.info('\tloading the GP surrogate model')
+    logger.info('loading the GP surrogate model')
     mll, model = load_models(train_x, train_obj)
     
     # fit the models
-    logging.info('\tFitting the GP surrogate model hyper-parameters')
+    logger.info('Fitting the GP surrogate model hyper-parameters')
     fit_gpytorch_model(mll)
 
     # define the acquisition modules
     acquisition = acq_fun(model)
 
     # optimize acquisition functions and get new observations
-    logging.info('\tSelecting the next best samples to query')
+    logger.info('Selecting the next best samples to query')
     new_x = selector(acquisition, q= int(config['BO']['batch_size']))
-    logging.info('\tNewly selected points are %s \nof shape %s'%(new_x, new_x.shape[0]))
+    logger.info('Newly selected points are %s \nof shape %s'%(new_x, new_x.shape[0]))
     torch.save(new_x, savedir+'candidates_%d.pt'%iteration)
     
 

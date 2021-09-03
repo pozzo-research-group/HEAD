@@ -19,8 +19,21 @@ with open(os.path.abspath('./config.yaml'), 'r') as f:
 savedir = config['Default']['savedir']
 
 import logging
-logging.basicConfig(level=logging.INFO, 
-    format='%(asctime)s%(message)s \t')
+
+def logger(name):
+    format = '%(asctime)s %(name)2s %(message)s '
+    logging.basicConfig(level=logging.INFO, 
+    format=format,
+    filename=savedir + '/log.txt',
+    filemode='w')
+
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    console.setFormatter(logging.Formatter(format))
+    logging.getLogger().addHandler(console)
+    
+    return logging.getLogger(name)
+
   
 def ground_truth_dls(dirname):
     files = sorted(glob.glob(dirname+'/*.txt'))
