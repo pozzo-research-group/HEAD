@@ -7,7 +7,7 @@ from matplotlib.cm import ScalarMappable
 import torch
 import head
 
-plt.rcParams.update({"text.usetex": False,
+plt.rcParams.update({"text.usetex": True,
                      "axes.spines.right" : False,
                      "axes.spines.top" : False,
                      "font.size": 18
@@ -97,8 +97,6 @@ opt_x = selector(PosteriorMean(model, objective=objective), q=1)
 opt_x = opt_x.cpu().numpy().squeeze()
 
 print('Best sample from the optimization :', opt_x)
-print('Target distribution parameters : ', config['Default']['r_mu'], 
-config['Default']['r_sigma'])
 
 fig, axs = plt.subplots(1,3,figsize=(4*3,4))
 
