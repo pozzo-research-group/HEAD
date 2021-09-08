@@ -30,6 +30,9 @@ iteration = config['BO']['iteration']
 sys.path.append(os.path.join(os.path.dirname('./utils.py')))
 from utils import logger
 logger = logger('run_bo')
+
+sys.path.append(os.path.join(os.path.dirname('./stocks.py')))
+from stocks import to_volume
         
 # 2. define your model
 def initialize_model(train_x, train_obj):
@@ -101,6 +104,10 @@ if __name__=='__main__':
 
     # load the train data collected so far
     train_x = torch.load(savedir+'train_x.pt', map_location=tkwargs['device'])
+    volume_df, seed_df = to_volume(train_x.numpy())
+    volume_df.to_csv(savedir+'volume_%d.csv'%iteration)
+    seed_df.to_csv(savedir+'seeds_%d.csv'%iteration)
+    logger.info('Saved volumes and stocks to %s'%(savedir))
     train_obj = torch.load(savedir+'train_obj.pt', map_location=tkwargs['device'])
     
     logger.info('initializing the GP surrogate model using %d samples'%(train_x.shape[0]))

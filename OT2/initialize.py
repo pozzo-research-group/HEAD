@@ -10,9 +10,13 @@ savedir = config['Default']['savedir']
 
 
 def make_grid():
-	X = np.linspace(10,30, num=int(config['Default']['num_grid_perdim'])) 
-	Y = np.linspace(1e-3,1, num=int(config['Default']['num_grid_perdim']))
-	grid = head.Grid(X,Y)
+	ctab = np.linspace(6.87e-5,0.109, num=int(config['Default']['num_grid_perdim'])) 
+	agno3 = np.linspace(4e-5,0.0039, num=int(config['Default']['num_grid_perdim']))
+	haucl4 = np.linspace(8e-7,0.0005, num=int(config['Default']['num_grid_perdim']))
+	acid = np.linspace(0.0004,0.04, num=int(config['Default']['num_grid_perdim']))
+	seeds = np.linspace(5.84e-9,5.84e-7, num=int(config['Default']['num_grid_perdim']))
+	
+	grid = head.Grid(ctab, agno3, haucl4, acid, seeds)
 	logger.info('Number of grid points' + str(grid.shape))
 	np.savetxt(savedir+'grid.txt', grid, delimiter=',')
 	

@@ -1,6 +1,6 @@
 BO:
-  batch_size: 5
-  iteration: 3
+  batch_size: 23
+  iteration: 1
   n_init_samples: 5
   n_iterations: 2
   objective:
@@ -10,7 +10,7 @@ BO:
   - 0.5
   - 0.5
 Default:
-  num_grid_perdim: 20
+  num_grid_perdim: 8
   oracle_call: 1
   r_mu: 20
   r_sigma: 1e-2

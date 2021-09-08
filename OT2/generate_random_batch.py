@@ -5,7 +5,7 @@ from head.metrics import euclidean_dist
 from configparser import ConfigParser
 
 import torch
-import os, sys 
+import os, sys, pdb
 
 import yaml
 
@@ -14,6 +14,9 @@ with open(os.path.abspath('./config.yaml'), 'r') as f:
 
 sys.path.append(os.path.join(os.path.dirname('./utils.py')))
 from utils import logger
+
+sys.path.append(os.path.join(os.path.dirname('./stocks.py')))
+from stocks import to_volume
 
 logger = logger('generate_random_batch')
 
@@ -47,6 +50,12 @@ if __name__=='__main__':
     
     grid = np.loadtxt(savedir+'grid.txt', delimiter=',')    
     train_x = generate_initial_data(n=config['BO']['n_init_samples'])
+    logger.info('Converting concentrations to volumes to be despensed...')
+    volume_df, seed_df = to_volume(train_x.numpy())
+    volume_df.to_csv(savedir+'volume_%d.csv'%iteration)
+    seed_df.to_csv(savedir+'seeds_%d.csv'%iteration)
+    logger.info('Saved volumes and stocks to %s'%(savedir))
+    
     logger.info('Initial random candidate points: %s'%(repr(train_x)))
     torch.save(train_x, savedir+'candidates_%d.pt'%iteration)
     np.savetxt(savedir+'candidates_%d.txt'%iteration, train_x.cpu().numpy())
