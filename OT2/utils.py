@@ -57,8 +57,8 @@ def ground_truth_saxs(dirname):
             continue
         st = np.loadtxt(savedir+'target_saxs.txt', delimiter=',')
         si = np.loadtxt(file, delimiter=',')
-        dist = euclidean_dist(np.log10(si),np.log10(st)) 
-        
+        #dist = euclidean_dist(np.log10(si),np.log10(st)) 
+        dist = euclidean_dist(si,st)
         out.append(dist) 
                 
     return out 

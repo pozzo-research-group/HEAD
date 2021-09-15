@@ -38,10 +38,18 @@ def make_target():
 		np.savetxt(savedir+'/target_uvvis.txt', It, delimiter=',')
 		np.savetxt(savedir+'wl.txt', wl, delimiter=',')
 
+def make_target_from_file(file,name):
+	spectra = pd.read_excel(args.xlsx, index_col=0, engine='openpyxl') 
+	codomain = spectra.iloc[:,1]
+	domain = spectra.iloc[:,0]
+	np.savetxt(savedir+'target_%s.txt'%name, codomain, delimiter=',')
+	logger.info('%s Target domain: [%f,%f] ; codomain: [%f, %f] '%(name, min(q), max(q), min(st), max(st)))
+	np.savetxt(savedir+'%s_domain.txt'%name, domain, delimiter=',')
+
 if __name__=='__main__':
 	
 	if  os.path.exists(savedir):
-		RuntimeError('Required directory already exists...\n'
+		raise RuntimeError('Required directory already exists...\n'
 			'Confirm that this is not a duplicate run, manually delete the directory and re-run again')
 	else:
 		os.makedirs(savedir)

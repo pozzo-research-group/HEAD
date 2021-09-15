@@ -71,10 +71,13 @@ def paretofront():
 def trace(objs):
 	spectra_files = glob.glob(savedir + 'spectra_*')
 	if 'saxs' in objs:
-		q = np.loadtxt(savedir+'q.txt', delimiter=',')
+		q = np.loadtxt(savedir+'saxs_domain.txt', delimiter=',')
 		
 	if 'uvvis' in objs:
-		wl = np.loadtxt(savedir+'wl.txt', delimiter=',')
+		wl = np.loadtxt(savedir+'uvvis_domain.txt', delimiter=',')
+		
+	if 'dls' in objs:
+		sz = np.loadtxt(savedir+'dls_domain.txt', delimiter=',')	
 		
 	for b,spectra_dir in enumerate(spectra_files):
 		fig, ax = plt.subplots()
@@ -109,7 +112,8 @@ def trace(objs):
 					Ii = np.loadtxt(spectra_dir+'/%d_uvvis.txt'%i, delimiter=',')
 					axs[1].plot(wl, Ii, label='%.2f'%(Yb[i,1]))
 				if 'dls' in objs:
-					raise NotImplementedError
+					pr = np.loadtxt(spectra_dir+'/%d_dls.txt'%i, delimiter=',')
+					axs[1].plot(sz, pr, label='%.2f'%(Yb[i,1]))
 		    	
 			for ax in axs:
 				ax.legend()	
