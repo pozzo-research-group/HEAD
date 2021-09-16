@@ -3,6 +3,7 @@ import pdb
 from sklearn.neighbors import kneighbors_graph
 from scipy.spatial import ConvexHull as CH
 from scipy.spatial import Delaunay
+from sklearn.preprocessing import MinMaxScaler
 
 class Euclidean:
     def __init__(self, points):
@@ -62,7 +63,16 @@ class Grid(Euclidean):
         points = np.vstack(map(np.ravel, self.mesh)).T
         super().__init__(points)
 
-    
+class UnitCube:
+    def __init__(self,dim):
+        """A unit cube as a proxy for the grid
+        """
+        self.dim = dim
+        
+    def map(self, r, min_, max_):
+        return min_ + r*(max_-min)
+        
+            
     
 class Hyperplane(Euclidean):
     """Hyperplan that is obtained by constraining the components to sum upto 1

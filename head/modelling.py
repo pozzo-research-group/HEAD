@@ -11,6 +11,10 @@ import pdb
 import warnings
 warnings.filterwarnings("ignore")
 
+from sasmodels.data import empty_data1D, plot_theory
+from sasmodels.core import load_model
+from sasmodels.direct_model import DirectModel
+
 class Emulator:
     def __init__(self, use_mean = True, n_structures=None):
         
@@ -43,6 +47,7 @@ class Emulator:
         # sample radius from a log-normal distribution
         # pyGDM2 defines radius as step*number of particles thus self.radii is a number
         # while the actual radii of the sphere is self.step*self.radii
+        #print('Structure parameters : ', r_mu, r_sigma, self.n_structures)
         self.step = 15
         self.r_mu = r_mu
         self.r_sigma = r_sigma
@@ -197,6 +202,43 @@ class Emulator:
         Iq_pd = self.make_polydisperse(Iqs, q)
         
         return q, Iq_pd
+        
+    
+class EmulatorMultiShape(Emulator):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)    
+
+    def _get_shape(self, x):
+        if x<0.5:
+            return "sphere"
+        elif x>=0.5:
+            return "cylinder"
+        else:
+            raise RuntimeError('Value %.2f is not a valid shape parameter'%x)
+            
+        
+    def _sasmodels(self, q, shape_param, radius):
+        data = empty_data1D(q, resolution=0.05)
+        kernel = load_model(self._get_shape(shape_param))
+        f = DirectModel(data, kernel)
+
+        return f(radius=radius)
+        
+    def get_saxs(self, shape_param, n_samples=200):
+        """Obtain a SAS profile with polydispersity
+        
+        Implemented following the description provided in:
+        https://www.sasview.org/docs/user/qtgui/Perspectives/Fitting/pd/polydispersity.html
+        """
+        q = np.logspace(np.log10(1e-3), np.log10(1), n_samples)
+        Iqs = [self._sasmodels(q, shape_param, ri) for ri in self.radii]
+        Iq_pd = self.make_polydisperse(Iqs, q)
+        
+        return q, Iq_pd
+
+        
+        
         
         
         
