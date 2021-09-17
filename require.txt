@@ -6,6 +6,5 @@ scikit-learn
 scipy
 pyGDM2
 botorch
-seaborn
 openpyxl
-pyyaml
+sasmodels
