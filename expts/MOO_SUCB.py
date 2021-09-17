@@ -38,6 +38,8 @@ from botorch.optim.optimize import optimize_acqf_discrete
 from botorch.acquisition.monte_carlo import qUpperConfidenceBound
 from botorch.acquisition.objective import LinearMCObjective
 from matplotlib.cm import ScalarMappable
+from botorch.acquisition import PosteriorMean
+from botorch.acquisition.objective import ScalarizedObjective
 
 N_UVVIS_SAMPLES = 100
 N_SAS_SAMPLES = 200
@@ -46,6 +48,7 @@ BATCH_SIZE = 5
 N_ITERATIONS = 4
 R_mu = 20
 R_sigma = 1e-2
+WEIGHTS = [0.5,0.5]
 
 expt = {}
 EXPT_ID = 0
@@ -81,8 +84,10 @@ plt.setp(axs[2], xlabel=r'$\lambda$ (nm)', ylabel='abs (a.u.)')
 
 fig.suptitle('r = '+','.join('%.2f'%i for i in sim.radii))
 
-plt.show()
+plt.savefig(savedir + '/targets.png', bbox_inches='tight')
+plt.close()
 
+print('Generated targets using the simulators...')
 
 # In[3]:
 
@@ -103,6 +108,7 @@ ax.set_ylabel(r'$r_{\sigma}$')
 plt.savefig(savedir + '/dspace.png', bbox_inches='tight')
 plt.close()
 
+print('Generated the design space as a grid')
 
 # In[4]:
 
@@ -130,12 +136,8 @@ def batch_oracle(x):
     return torch.stack(out, dim=0).to(**tkwargs)
 
 
-# In[5]:
-
 
 problem = lambda s : batch_oracle(s)
-ref_point = torch.tensor([0,0]).to(**tkwargs)
-
 
 # sample initial data
 def generate_initial_data(n=6):
@@ -167,7 +169,7 @@ mll, model = initialize_model(train_x, train_obj)
 
 # 3. Define acqusition function
 
-obj = LinearMCObjective(weights=torch.tensor([0.5, 0.5]).to(**tkwargs))
+obj = LinearMCObjective(weights=torch.tensor(WEIGHTS).to(**tkwargs))
 acq_fun = lambda model: qUpperConfidenceBound(model, beta=0.1, objective=obj)
 
 
@@ -206,13 +208,11 @@ for iteration in range(1, N_ITERATIONS + 1):
     train_x = torch.cat([train_x, new_x])
     train_obj = torch.cat([train_obj, new_obj])
 
-    # reinitialize the models so they are ready for fitting on next iteration
-    # Note: we find improved performance from not warm starting the model hyperparameters
-    # using the hyperparameters from the previous iteration
+    # do this to re-train Kernel parameters based on the updated dataset
     mll, model = initialize_model(train_x, train_obj)
 
     best = train_obj.max(axis=0).values
-    print('Best SAS distance : %.2f, Best UVVis distance : %.2f'%(best[0], best[1]))
+    print('%d : Best SAS distance : %.2f, Best UVVis distance : %.2f'%(iteration, best[0], best[1]))
 
 # Plot paretofront
 
@@ -259,13 +259,15 @@ for i, (ax, f) in enumerate(zip(axs,[f1,f2])):
 plt.savefig(savedir + '/objectives.png', bbox_inches='tight')
 plt.close()
 
+
 # plot optimal curves
-train_acq = acquisition(train_x.unsqueeze(1))
-best_obj, best_ind = train_acq.max(axis=0)
-opt = train_x[best_ind].cpu().numpy().squeeze()
+objective = ScalarizedObjective(weights=torch.tensor(WEIGHTS).to(**tkwargs))
+opt_x, opt_obj = selector(PosteriorMean(model, objective=objective), q=1)
+opt_x = opt_x.cpu().numpy().squeeze()
+
 fig, axs = plt.subplots(1,3,figsize=(4*3,4))
 line_target = sim.plot_radii(axs[0])
-sim.make_structure(r_mu=opt[0],r_sigma=opt[1])
+sim.make_structure(r_mu=opt_x[0],r_sigma=opt_x[1])
 line_best = sim.plot_radii(axs[0])
 axs[0].legend([line_target, line_best],['Target', 'Best'])
 axs[0].set_xlabel('radius')

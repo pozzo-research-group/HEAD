@@ -7,7 +7,7 @@
 #SBATCH --nodes=1   
 #SBATCH --ntasks-per-node=12
 #SBATCH --time=2:00:00
-#SBATCH --mem=100G
+#SBATCH --mem=64G
 #SBATCH --chdir=/gscratch/scrubbed/kiranvad/Genetic_Algorithm
 #SBATCH --output=expts/joblogs/pred_MOO_SUCB.out
 #SBATCH --error=expts/joblogs/err_MOO_SUCB.out
@@ -27,5 +27,5 @@ which python
 module load cuda/11.1.1-1
 echo "working directory = "$SLURM_SUBMIT_DIR
 cd $SLURM_SUBMIT_DIR
-python -u MOO_SUCB.py > ./joblogs/MOO_SUCB.out
+python MOO_SUCB.py
 exit

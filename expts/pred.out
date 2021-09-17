@@ -1,7 +1,0 @@
-SLURM_JOBID=2125655
-SLURM_JOB_NODELIST=n2314
-SLURM_NNODES=1
-SLURMTMPDIR=
-Environment from : 
-/gscratch/scrubbed/kiranvad/Genetic_Algorithm/env/bin/python
-working directory = /gscratch/scrubbed/kiranvad/Genetic_Algorithm/expts

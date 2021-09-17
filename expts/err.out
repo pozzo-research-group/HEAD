@@ -1,3 +1,0 @@
-/gscratch/scrubbed/kiranvad/Genetic_Algorithm/head/__init__.py:6: UserWarning: scikit-fda installation is not found thus its applications will be excluded
-  warnings.warn("scikit-fda installation is not found thus its applications will be excluded")
-slurmstepd: error: *** JOB 2125655 ON n2314 CANCELLED AT 2021-08-13T16:01:25 ***

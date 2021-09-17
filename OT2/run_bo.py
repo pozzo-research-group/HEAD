@@ -11,29 +11,17 @@ from botorch.acquisition.objective import LinearMCObjective
 
 import os, sys
 import numpy as np
-import logging
-import pdb
-
-import yaml
-
-with open(os.path.abspath('./config.yaml'), 'r') as f:
-    config = yaml.load(f, Loader=yaml.FullLoader)
 
 tkwargs = {
         "dtype": torch.double,
         "device": torch.device("cuda" if torch.cuda.is_available() else "cpu"),
     }
 
+config = ConfigParser()
+config.read("config.ini")
 savedir = config['Default']['savedir']
-iteration = config['BO']['iteration']
-
-sys.path.append(os.path.join(os.path.dirname('./utils.py')))
-from utils import logger
-logger = logger('run_bo')
-
-sys.path.append(os.path.join(os.path.dirname('./stocks.py')))
-from stocks import to_volume
-        
+iteration = int(config['BO']['iteration'])
+    
 # 2. define your model
 def initialize_model(train_x, train_obj):
     # define models for objective and constraint
@@ -59,12 +47,7 @@ def load_models(train_x, train_obj):
     return mll, model
 
 # 3. Define acqusition function
-if len(config['BO']['objective'])==1:
-    obj = None
-else:
-    weights = config['BO']['weights']
-    obj = LinearMCObjective(weights=torch.tensor(weights).to(**tkwargs))
-    
+obj = LinearMCObjective(weights=torch.tensor([0.5, 0.5]).to(**tkwargs))
 acq_fun = lambda model: qUpperConfidenceBound(model, beta=0.1, objective=obj)
 
 
@@ -86,47 +69,35 @@ def selector(f,q):
 
 # 5. define the opitmization loop
 if __name__=='__main__':
-    config['BO']['iteration'] = config['BO']['iteration']+1
-    with open(os.path.abspath('./config.yaml'), 'w') as fp:
-        yaml.dump(config, fp)
+    # define a ground truth function 
+    config.set('BO', 'iteration', str(int(config['BO']['iteration'])+1))
+    with open('config.ini', 'w') as configfile:
+        config.write(configfile)
         
-    iteration = config['BO']['iteration']
-    n_iterations = config['BO']['n_iterations']
+    iteration = int(config['BO']['iteration'])
+    n_iterations = int(config['BO']['n_iterations'])
     
     if iteration>n_iterations:
-        sys.path.append(os.path.join(os.path.dirname('./utils.py')))
-        from utils import get_best_sofar
-        get_best_sofar()
-        logger.info('Maximum number of iterations reached')
-        raise RuntimeError
+        raise RuntimeError('Maximum number of iterations reached')
     
-    logger.info('Iteration : %d/%d'%(iteration, config['BO']['n_iterations']))
+    print('Iteration : %d/%d'%(iteration, int(config['BO']['n_iterations'])))
 
     # load the train data collected so far
     train_x = torch.load(savedir+'train_x.pt', map_location=tkwargs['device'])
-    volume_df, seed_df = to_volume(train_x.numpy())
-    volume_df.to_csv(savedir+'volume_%d.csv'%iteration)
-    seed_df.to_csv(savedir+'seeds_%d.csv'%iteration)
-    logger.info('Saved volumes and stocks to %s'%(savedir))
     train_obj = torch.load(savedir+'train_obj.pt', map_location=tkwargs['device'])
-    
-    logger.info('initializing the GP surrogate model using %d samples'%(train_x.shape[0]))
     mll, model = initialize_model(train_x, train_obj)  
      
-    logger.info('loading the GP surrogate model')
+
     mll, model = load_models(train_x, train_obj)
     
     # fit the models
-    logger.info('Fitting the GP surrogate model hyper-parameters')
     fit_gpytorch_model(mll)
 
     # define the acquisition modules
     acquisition = acq_fun(model)
 
     # optimize acquisition functions and get new observations
-    logger.info('Selecting the next best samples to query')
     new_x = selector(acquisition, q= int(config['BO']['batch_size']))
-    logger.info('Newly selected points are %s \nof shape %s'%(new_x, new_x.shape[0]))
     torch.save(new_x, savedir+'candidates_%d.pt'%iteration)
     
 
