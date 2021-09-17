@@ -7,3 +7,4 @@ scipy
 pyGDM2
 botorch
 openpyxl
+sasmodels
