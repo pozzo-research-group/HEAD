@@ -56,7 +56,8 @@ class Emulator:
         self.radii_dist = stats.lognorm(**self.radii_dist_kwargs) 
         self.radii = stats.lognorm.rvs(size=self.n_structures, **self.radii_dist_kwargs)
         self.radii_nrs = self.radii/self.step
-        
+   
+    def _make_pydgm2_geom(self):
         # define a scale to use for distributing particles spatially
         spatial_scale = (self.r_mu+self.r_sigma)*self.step*5
 
@@ -65,14 +66,13 @@ class Emulator:
         # For now, the impact of the spatial distribution is not considered
         # This assumption is valid for SAS profiles where the spatial variation is not accounted for
         # pyGDM2 however, take this into account to return a spectrum
-        
         self.XY= spatial_scale*self.XY_
         self.material = materials.gold()
         geom_list = []
 
         for i,(x,y) in enumerate(self.XY):
             _geo = structures.sphere(self.step, R=self.radii_nrs[i], mesh='hex')
-            if spatial:
+            if self.spatial:
                 _geo = structures.shift(_geo, [x, y, 0])
             geom_list.append(_geo)
             
@@ -112,6 +112,7 @@ class Emulator:
         return ax
     
     def _simulate_uvvis(self, struct, wavelengths):
+        self._make_pydgm2_geom()
         field_generator = fields.plane_wave
         kwargs = dict(theta=0, inc_angle=180)
 
@@ -217,13 +218,44 @@ class EmulatorMultiShape(Emulator):
         else:
             raise RuntimeError('Value %.2f is not a valid shape parameter'%x)
             
-        
     def _sasmodels(self, q, shape_param, radius):
         data = empty_data1D(q, resolution=0.05)
         kernel = load_model(self._get_shape(shape_param))
         f = DirectModel(data, kernel)
 
         return f(radius=radius)
+    
+    def _pygdm2(self, shape_param):
+
+        self.material = materials.gold()
+        geom_list = []
+        
+        if self._get_shape(shape_param)=='sphere':
+            geom_base = lambda r : structures.sphere(self.step, r, mesh='hex')
+            
+        elif self._get_shape(shape_param)=='cylinder':
+            geom_base = lambda r : structures.nanorod(self.step, r*10, r, mesh='hex')
+            
+        for ri in self.radii_nrs:
+            geom_list.append(geom_base(ri))
+            
+        self.geometry = geom_list
+        
+        return self
+        
+    def get_uvvis(self, shape_param, n_samples=200):
+        self._pygdm2(shape_param)
+        wl = np.linspace(400, 1000, n_samples)
+        abs_all = []
+        for geom in self.geometry:
+            struct = structures.struct(self.step, geom, 
+            self.material, verbose=False)
+            abs_ = self._simulate_uvvis(struct, wl)
+            abs_all.append(abs_)
+            
+        abs_pd = self.make_polydisperse(abs_all, wl)
+            
+        return wl, abs_pd           
         
     def get_saxs(self, shape_param, n_samples=200):
         """Obtain a SAS profile with polydispersity
