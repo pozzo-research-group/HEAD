@@ -10,6 +10,7 @@ tkwargs = {
     "dtype": torch.double,
     "device": torch.device("cuda" if torch.cuda.is_available() else "cpu"),
 }
+print(tkwargs)
 import head
 import numpy as np
 from head.metrics import euclidean_dist
@@ -35,7 +36,7 @@ N_INIT_SAMPLES = 8
 R_mu = 20
 R_sigma = 1e-2
 SHAPE_PARAM = 0.67
-SPECTRA = 'uvvis'
+SPECTRA = 'saxs'
 
 expt = {}
 EXPT_ID = 0
@@ -125,7 +126,8 @@ def draw_random_batch(n_samples=6):
 train_x, train_obj = draw_random_batch(n_samples=N_INIT_SAMPLES)
 print('Generated %d samples randomly'%N_INIT_SAMPLES, train_x.shape, train_obj.shape)
 for i in range(N_INIT_SAMPLES):
-    print('%d\t%s\t%s'%(i, train_x[i,...].numpy(), train_obj[i,...].numpy()))  
+    print('%d\t%s\t%s'%(i, train_x[i,...].cpu().numpy(), 
+    train_obj[i,...].cpu().numpy()))  
 
 
 print('Initializing the models and likelihood functions ...')
@@ -170,7 +172,8 @@ for iteration in range(1, N_ITERATIONS + 1):
     # optimize acquisition functions and get new observations
     new_x, new_obj = selector(acquisition)
     for i in range(BATCH_SIZE):
-        print('%d\t%s\t%s'%(i, new_x[i,...].numpy(), new_obj[i,...].numpy()))
+        print('%d\t%s\t%s'%(i, new_x[i,...].cpu().numpy(), 
+        new_obj[i,...].cpu().numpy()))
 
     # update training points
     train_x = torch.cat([train_x, new_x])

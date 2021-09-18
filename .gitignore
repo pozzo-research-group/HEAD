@@ -133,3 +133,8 @@ data/2021_June_USAXS
 figures/
 figures/*.png
 OT2/test/
+data/*.npz
+expts/joblogs
+core*
+*.out
+

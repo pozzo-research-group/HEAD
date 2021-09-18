@@ -1,1 +1,1 @@
-## Used for batch computing on Hyak. Typically not useful for others.
+Used for batch computing on Hyak. Typically not useful for others.
