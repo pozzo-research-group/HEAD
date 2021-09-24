@@ -1,15 +1,8 @@
-SLURM_JOBID=2204291
-SLURM_JOB_NODELIST=n2317
+SLURM_JOBID=2207066
+SLURM_JOB_NODELIST=n2318
 SLURM_NNODES=1
 SLURMTMPDIR=
-Environment from : 
+python from the following virtualenv
 /gscratch/scrubbed/kiranvad/Genetic_Algorithm/env/bin/python
-working directory = /gscratch/scrubbed/kiranvad/Genetic_Algorithm/expts
-Setting up the targets ...
-Generated targets using the simulators...
-Defining search space using bounds...
-Bounds :  tensor([[ 5.,  0.,  0.],
-        [50.,  1.,  1.]], device='cuda:0', dtype=torch.float64)
-Defining oracles and their batch mode versions...
-Generating random samples...
-Generated 8 samples randomly torch.Size([8, 3]) torch.Size([8, 1])
+working directory = 
+/usr/lusers/kiranvad/scratch/Genetic_Algorithm/expts

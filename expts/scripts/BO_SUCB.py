@@ -23,20 +23,22 @@ from botorch.acquisition.objective import LinearMCObjective, ScalarizedObjective
 from botorch.optim.optimize import optimize_acqf
 from botorch.utils.sampling import draw_sobol_samples
 from botorch.acquisition import PosteriorMean
+from matplotlib import cm
+from matplotlib.colors import Normalize
+import pickle
 
-N_UVVIS_SAMPLES = 100
+N_UVVIS_SAMPLES = 75
 N_SAS_SAMPLES = 200
-NUM_GRID_PERDIM = 100
-BATCH_SIZE = 16
+BATCH_SIZE = 8
 N_ITERATIONS = 10
 NUM_RESTARTS = 20 
 RAW_SAMPLES = 1024
-N_INIT_SAMPLES = 8
+N_INIT_SAMPLES = 4
 
 R_mu = 20
 R_sigma = 1e-2
 SHAPE_PARAM = 0.67
-SPECTRA = 'saxs'
+SPECTRA = 'uvvis'
 
 expt = {}
 EXPT_ID = 0
@@ -76,7 +78,7 @@ print('Generated targets using the simulators...')
 
 print('Defining search space using bounds...')
 r_mu = [5,50]
-r_sigma = [0,1]
+r_sigma = [1e-4,1]
 shape_param = [0,1]
 bounds = torch.tensor((r_mu, r_sigma, shape_param)).T.to(**tkwargs)
 print('Bounds : ', bounds)
@@ -196,7 +198,7 @@ print('Actual target : ', [R_mu, R_sigma])
 opt_x, opt_obj = selector(PosteriorMean(model, objective=objective), q=1)
 opt_x = opt_x.cpu().numpy().squeeze()
 print('Optimal location: ',opt_x,
-      '\nOptimal model scores: ', opt_obj.numpy())
+      '\nOptimal model scores: ', opt_obj.cpu().numpy().squeeze())
 
 print('Creating batchwise trace plots ...')
 batch_number = torch.cat(
@@ -204,16 +206,47 @@ batch_number = torch.cat(
      torch.arange(1, N_ITERATIONS+1).repeat(BATCH_SIZE, 1).t().reshape(-1)]
 ).numpy()
 
+all_scores = [v[2] for _, v in expt.items()]
+norm = Normalize(vmin=min(all_scores), vmax=0)
+cmap = cm.get_cmap('viridis')
+mappable = cm.ScalarMappable(norm=norm, cmap=cmap)
+
 for b in np.unique(batch_number):
     fig, ax = plt.subplots(1,1)
     fig.suptitle('Batch number %d'%b)
     for i in np.argwhere(batch_number==b).squeeze():
         if SPECTRA=='uvvis':
-            ax.plot(expt[i][0], expt[i][1], label='%.2f'%expt[i][2])
+            ax.plot(expt[i][0], expt[i][1], 
+            color=cmap(norm(expt[i][2])))
         elif SPECTRA=='saxs':
-            ax.loglog(expt[i][0], expt[i][1], label='%.2f'%expt[i][2])
-    ax.legend()
+            ax.loglog(expt[i][0], expt[i][1],
+            color=cmap(norm(expt[i][2])))
+    cbar = fig.colorbar(mappable,ax=ax)
     plt.savefig(savedir + '/trace_b%d.png'%b, bbox_inches='tight')
     plt.close()
+    
+with open(savedir+'/expt.pkl', 'wb') as f:
+	pickle.dump(expt, f, pickle.HIGHEST_PROTOCOL)
 
+
+plot_scores = []
+for b in np.unique(batch_number):
+    scores = np.asarray(all_scores)[np.argwhere(batch_number==b)]
+    mu, std = scores.mean(), scores.std()
+    plot_scores.append([mu, mu+std, mu-std])
+    
+plot_scores = np.asarray(plot_scores)
+fig, ax = plt.subplots()
+ax.fill_between(np.unique(batch_number), y1=plot_scores[:,1], y2=plot_scores[:,2], alpha=0.5)
+ax.plot(np.unique(batch_number), plot_scores[:,0])
+ax.set_xlabel('Iteration')
+ax.set_ylabel('Scores')
+plt.savefig(savedir + '/score_trace.png', bbox_inches='tight')
+plt.close()
+
+	
 print('Time elapsed %.2f'%(time.time()-T0))
+
+
+
+

@@ -1,6 +1,8 @@
 /gscratch/scrubbed/kiranvad/Genetic_Algorithm/head/__init__.py:6: UserWarning: scikit-fda installation is not found thus its applications will be excluded
   warnings.warn("scikit-fda installation is not found thus its applications will be excluded")
 Traceback (most recent call last):
-  File "/gscratch/scrubbed/kiranvad/Genetic_Algorithm/expts/scripts/BO_SUCB.py", line 128, in <module>
-    print('%d\t%s\t%s'%(i, train_x[i,...].numpy(), train_obj[i,...].numpy()))  
-TypeError: can't convert cuda:0 device type tensor to numpy. Use Tensor.cpu() to copy the tensor to host memory first.
+  File "/gscratch/scrubbed/kiranvad/Genetic_Algorithm/expts/scripts/BO_SUCB.py", line 208, in <module>
+    all_scores = [value[2] for _, v in expt.items()]
+  File "/gscratch/scrubbed/kiranvad/Genetic_Algorithm/expts/scripts/BO_SUCB.py", line 208, in <listcomp>
+    all_scores = [value[2] for _, v in expt.items()]
+NameError: name 'value' is not defined
