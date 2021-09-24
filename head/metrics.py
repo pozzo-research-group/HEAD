@@ -32,3 +32,4 @@ def euclidean_dist(query, target):
     """
     val = -distance.euclidean(query, target)
     return float(val)
+    
