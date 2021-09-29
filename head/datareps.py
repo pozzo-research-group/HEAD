@@ -1,6 +1,7 @@
 import numpy as np
 import pdb
 from scipy.spatial import distance
+import matplotlib.pyplot as plt
             
 class SymmetricMatrices:
     def __init__(self, x, y, num_filters=4):
