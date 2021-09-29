@@ -26,15 +26,16 @@ from botorch.acquisition import PosteriorMean
 from matplotlib import cm
 from matplotlib.colors import Normalize
 import pickle
+from head import SymmetricMatrices
 
-N_UVVIS_SAMPLES = 75
+N_UVVIS_SAMPLES = 100
 N_SAS_SAMPLES = 200
 BATCH_SIZE = 8
 N_ITERATIONS = 10
 NUM_RESTARTS = 20 
 RAW_SAMPLES = 1024
 N_INIT_SAMPLES = 4
-
+NUM_FILTERS = 10
 R_mu = 20
 R_sigma = 1e-2
 SHAPE_PARAM = 0.67
@@ -83,6 +84,11 @@ shape_param = [0,1]
 bounds = torch.tensor((r_mu, r_sigma, shape_param)).T.to(**tkwargs)
 print('Bounds : ', bounds)
 
+print('Defining the symmetric matrices based distance ...')
+def sym_dist(query, target, domain):
+    M = SymmetricMatrices(domain, target , num_filters = NUM_FILTERS)
+    return -M.distance(query)
+
 print('Defining oracles and their batch mode versions...')
 def oracle(x):
     """Scoring function at a given input location
@@ -96,11 +102,13 @@ def oracle(x):
     if SPECTRA=='saxs':
         xi, yi = sim.get_saxs(shape_param = x_np[2], 
                               n_samples=N_SAS_SAMPLES)
-        dist = euclidean_dist(np.log10(yi),np.log10(yt))
+        #dist = euclidean_dist(np.log10(yi),np.log10(yt))
+        dist = sym_dist(np.log10(yi),np.log10(yt), xi)
     elif SPECTRA=='uvvis':
         xi, yi = sim.get_uvvis(shape_param = x_np[2], 
                                n_samples=N_UVVIS_SAMPLES)
-        dist = euclidean_dist(yi,yt)
+        #dist = euclidean_dist(yi,yt)
+        dist = sym_dist(yi,yt, xi)
         
     expt[EXPT_ID] = [xi, yi, dist]
     EXPT_ID += 1
@@ -207,7 +215,7 @@ batch_number = torch.cat(
 ).numpy()
 
 all_scores = [v[2] for _, v in expt.items()]
-norm = Normalize(vmin=min(all_scores), vmax=0)
+norm = Normalize(vmin=min(all_scores), vmax=max(all_scores))
 cmap = cm.get_cmap('viridis')
 mappable = cm.ScalarMappable(norm=norm, cmap=cmap)
 
