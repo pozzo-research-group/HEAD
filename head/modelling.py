@@ -263,6 +263,7 @@ class EmulatorMultiShape(Emulator):
         Implemented following the description provided in:
         https://www.sasview.org/docs/user/qtgui/Perspectives/Fitting/pd/polydispersity.html
         """
+        print(n_samples)
         q = np.logspace(np.log10(1e-3), np.log10(1), n_samples)
         Iqs = [self._sasmodels(q, shape_param, ri) for ri in self.radii]
         Iq_pd = self.make_polydisperse(Iqs, q)

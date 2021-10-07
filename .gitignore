@@ -134,3 +134,4 @@ figures/
 figures/*.png
 expts/
 ext/
+*.png
