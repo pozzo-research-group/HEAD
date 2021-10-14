@@ -14,6 +14,7 @@ warnings.filterwarnings("ignore")
 from sasmodels.data import empty_data1D, plot_theory
 from sasmodels.core import load_model
 from sasmodels.direct_model import DirectModel
+import time
 
 class Emulator:
     def __init__(self, use_mean = True, n_structures=None):
@@ -31,7 +32,6 @@ class Emulator:
             self.make_polydisperse = self._average_profiles
         else:
             self.make_polydisperse = self._make_polydisperse
-        
         
     def make_structure(self, r_mu, r_sigma, spatial= False):
         """Create a structure with spatially distributed nano-sphere by 
@@ -270,8 +270,72 @@ class EmulatorMultiShape(Emulator):
         return q, Iq_pd
 
         
+class EmulatorSingleParticle:
+    
+    def __init__(self, verbose=True):
+        self.verbose = verbose
         
+    def get_uvvis(self, radius, length, theta=0.0, 
+        n_samples=100, scale_factor=0.25, num_dipoles=2e3):
         
+        t0 = time.time()
+        if self.verbose:
+            print('Radius : %.2f length : %.2f theta : %.2f'%(radius, length, theta))
+
+        field_generator = fields.planewave
+        wavelengths = np.linspace(400, 900, n_samples)
+
+        # assign a polarization to the source
+        kwargs = dict(theta = [theta])
+        efield = fields.efield(field_generator, 
+                       wavelengths=wavelengths, kwargs=kwargs)
+        
+        num_dipoles = num_dipoles
+
+        if np.isclose(radius,length, atol=1e-2):
+            scale_factor = ((3*num_dipoles)/(4*np.pi))**(1/3)
+            step = radius/scale_factor
+            geometry = structures.sphere(step, R=radius/step, mesh='cube')
+        else:
+            scale_factor = ((radius*num_dipoles)/(length*np.pi))**(1/3)
+            step = radius/scale_factor
+            geometry = structures.nanorod(step, R=radius/step, L=length/step, mesh='cube')
+            
+        if self.verbose:
+            print('Using a step size of %.2f given sf : %.2f and dipoles %d'%(step, scale_factor, num_dipoles))
+            print('Number of dipoles: ', len(geometry))
+        material = materials.gold()
+
+        # substrate and environment
+        n1, n2 = 1.33, 1.33
+        dyads = propagators.DyadsQuasistatic123(n1=n1, n2=n2)
+
+        struct = structures.struct(step, geometry, material)
+        sim = core.simulation(struct, efield, dyads)
+        E = core.scatter(sim, method='lu', verbose=False)
+        field_kwargs = tools.get_possible_field_params_spectra(sim)[0]
+        wl, spec = tools.calculate_spectrum(sim, field_kwargs, linear.extinct)
+        a_ext, a_sca, a_abs = spec.T
+        a_geo = tools.get_geometric_cross_section(sim)
+        tf = time.time()
+        
+        if self.verbose:
+            print('Simulation time : %2.3f'%(tf-t0))
+
+        return wl , a_ext/a_geo  
+
+    def get_saxs(self, radius, length, n_samples=100):
+        q = np.logspace(np.log10(1e-3), np.log10(1), n_samples=n_samples)
+        data = empty_data1D(q, resolution=0.05)
+        if np.isclose(radius,length, atol=1e-2):
+            kernel = load_model("sphere")
+        else:
+            kernel = load_model("cylinder")
+            
+        f = DirectModel(data, kernel)
+
+        return f(radius=radius)      
+            
         
         
         
