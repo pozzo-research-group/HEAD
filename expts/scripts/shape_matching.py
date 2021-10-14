@@ -1,4 +1,4 @@
-from head import TestShapeMatchBO,SymmetricMatrices
+from head import TestShapeMatchBO,SymmetricMatrices, L2
 from scipy.spatial import distance
 from scipy.stats import wasserstein_distance
 import matplotlib.pyplot as plt
@@ -7,7 +7,7 @@ import logging
 logging.basicConfig(format='%(levelname)s : %(message)s', level=logging.INFO)
 import os, shutil, pickle
 
-savedir = './figures/SphereCylinder/'
+savedir = './figures/SphereCylinderV2/'
 if  os.path.exists(savedir):
 	shutil.rmtree(savedir)
 os.makedirs(savedir)
@@ -52,18 +52,17 @@ def sym_mat(xi,yi,xt,yt, pi, pt):
     M  = SymmetricMatrices(xt, yt,num_filters = 5)
     return -M.distance(yi)
 
-def EMD(xi,yi,xt,yt, pi, pt):
-    return -wasserstein_distance(yi, yt)
-    
+def l2norm(xi,yi,xt,yt, pi, pt):
+    return -L2().distance(yi,yt,xi)   
     
 storage = {}
+metrics = [ground_truth, euclidean_dist, sym_mat, l2norm]
 
 for epoch in range(10):
     expt = TestShapeMatchBO()
     fig, ax = plt.subplots()
     ax.axhline(0, ls='--', lw='2.0', color='k')
     logging.info('Epoch %d'%epoch)
-    metrics = [ground_truth, euclidean_dist, sym_mat]
     for metric in metrics:
         logging.info('Metric :  %s'%metric.__name__)
         expt.run(metric)
