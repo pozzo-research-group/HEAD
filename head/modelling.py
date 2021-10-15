@@ -15,6 +15,8 @@ from sasmodels.data import empty_data1D, plot_theory
 from sasmodels.core import load_model
 from sasmodels.direct_model import DirectModel
 import time
+from scipy.interpolate import splev, splrep
+
 
 class Emulator:
     def __init__(self, use_mean = True, n_structures=None):
@@ -277,13 +279,16 @@ class EmulatorSingleParticle:
         
     def get_uvvis(self, radius, length, theta=0.0, 
         n_samples=100, scale_factor=0.25, num_dipoles=2e3):
+        """Compute UV-Vis spectra
+        Note that to speed up the simulation, this function spline interpolates the spectra
+        """
         
         t0 = time.time()
         if self.verbose:
             print('Radius : %.2f length : %.2f theta : %.2f'%(radius, length, theta))
 
         field_generator = fields.planewave
-        wavelengths = np.linspace(400, 900, n_samples)
+        wavelengths = np.linspace(400, 900, 20)
 
         # assign a polarization to the source
         kwargs = dict(theta = [theta])
@@ -312,17 +317,28 @@ class EmulatorSingleParticle:
 
         struct = structures.struct(step, geometry, material)
         sim = core.simulation(struct, efield, dyads)
+        
+        t0 = time.time()
         E = core.scatter(sim, method='lu', verbose=False)
+        if self.verbose:
+            print('Simulation took %.2f'%(time.time()-t0))
+            
         field_kwargs = tools.get_possible_field_params_spectra(sim)[0]
+        
+        t0 = time.time()
         wl, spec = tools.calculate_spectrum(sim, field_kwargs, linear.extinct)
+        if self.verbose:
+            print('calculate_spectrum took %.2f'%(time.time()-t0))
+            
         a_ext, a_sca, a_abs = spec.T
         a_geo = tools.get_geometric_cross_section(sim)
-        tf = time.time()
         
-        if self.verbose:
-            print('Simulation time : %2.3f'%(tf-t0))
-
-        return wl , a_ext/a_geo  
+        ext_eff = a_ext/a_geo 
+        spl = splrep(wl, ext_eff)
+        wl_spl = np.linspace(400, 900, n_samples)
+        ext_eff_spl = splev(wl_spl, spl)
+        
+        return wl_spl , ext_eff_spl 
 
     def get_saxs(self, radius, length, n_samples=100):
         q = np.logspace(np.log10(1e-3), np.log10(1), n_samples=n_samples)
