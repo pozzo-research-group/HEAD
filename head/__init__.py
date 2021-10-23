@@ -1,5 +1,5 @@
 import warnings
-from .datareps import SymmetricMatrices, L2
+from .datareps import SymmetricMatrices
 from .designspace import *
 from .policies import thompson_sampling
 from .utils import get_spectrum, ExampleRunnerSimulation, ExampleRunner

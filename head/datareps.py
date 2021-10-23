@@ -34,29 +34,7 @@ class SymmetricMatrices:
         M_s = self.get_rep(s)
         return np.linalg.norm(self.Id-M_s,ord='fro')
         
-class L2:
-    def __init__(self):
-        """L2 space for functions defined on [0,1]-> R
-        """ 
-        
-    def inner_product(self, y1, y2, x):
-        """Compute inner product of two points in a L2 space
-        """ 
-        x_unit = (x-max(x))/(max(x)-min(x))
-        
-        return np.trapz(y1*y2, x=x_unit)
-        
-    def norm(self, y, x):
-        """return norm of a function"""
-        return np.sqrt(self.inner_product(y,y,x))
-        
-    def distance(self, v, w, x):
-        """Compute distance between two tangent vectors"""
-        
-        return self.norm(v-w, x)
-        
-        
-        
+
         
         
         
