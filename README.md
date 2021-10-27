@@ -8,11 +8,7 @@ We recommend installing the package in a editable format using the `install.sh` 
 ```python
 from head import opentrons
 import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
-import pdb
-from matplotlib import cm
-import matplotlib
 from scipy.spatial import distance
 ```
 
