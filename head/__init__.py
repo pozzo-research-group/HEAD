@@ -6,3 +6,4 @@ from .utils import get_spectrum, ExampleRunnerSimulation, ExampleRunner
 from .metrics import euclidean_dist
 from .modelling import Emulator, EmulatorMultiShape, EmulatorSingleParticle
 from .expts import TestShapeMatchBO
+from .opentrons import *
