@@ -16,6 +16,7 @@ from botorch.optim.optimize import optimize_acqf
 from botorch.acquisition import PosteriorMean
 from geomstats.geometry.euclidean import Euclidean
 import pandas as pd 
+import pickle
 
 tkwargs = {
     "dtype": torch.double,
@@ -30,7 +31,6 @@ class Optimizer:
         self.yt = yt
         self.bounds = torch.tensor(bounds).T.to(**tkwargs)
         self.Rn = Euclidean(len(self.xt)) 
-        self.metric = lambda yi : -float(self.Rn.metric.dist(yi, self.yt))
         self.savedir = savedir
         if not os.path.exists(self.savedir):
             os.makedirs(self.savedir)
@@ -44,10 +44,12 @@ class Optimizer:
         self.suggest_next()
         self.new_obj = torch.tensor([]).to(**tkwargs)
 
+    def metric(self, yi):
+        return -float(self.Rn.metric.dist(yi, self.yt))
+    
     def draw_random_batch(self,n_samples):
         random_x = draw_sobol_samples(
-            bounds=self.bounds,n=1, q=n_samples, 
-            seed=torch.randint(2021, (1,)).item()
+            bounds=self.bounds,n=1, q=n_samples
         ).squeeze(0)
         
         return random_x
@@ -144,12 +146,16 @@ class Optimizer:
         np.save(idir+'/new_obj.npy',self.new_obj.numpy())
         np.save(idir+'/train_x.npy',self.train_x.numpy())
         np.save(idir+'/train_obj.npy',self.train_obj.numpy())
+
+        with open(idir + '/storage.pkl', 'wb') as handle:
+            pickle.dump(self.expt, handle, protocol=pickle.HIGHEST_PROTOCOL)
         if hasattr(self, 'model'):
             np.save(idir+'/wavelengths.npy',self.wavelengths)
             np.save(idir+'/spectra.npy',self.spectra)
             torch.save(self.model.state_dict(), idir+'/model.pth')
 
         return 
+        
         
         
         
