@@ -16,6 +16,7 @@ from botorch.optim.optimize import optimize_acqf
 from botorch.acquisition import PosteriorMean
 from geomstats.geometry.euclidean import Euclidean
 import pandas as pd 
+import pickle
 
 tkwargs = {
     "dtype": torch.double,
@@ -25,12 +26,20 @@ tkwargs = {
  
 class Optimizer:
     
-    def __init__(self, xt, yt, bounds, savedir='../', batch_size=8):
+    def __init__(self, xt, yt, bounds, savedir='../', batch_size=8, hyperplane=False):
         self.xt = xt 
         self.yt = yt
         self.bounds = torch.tensor(bounds).T.to(**tkwargs)
+        self.hyperplane = hyperplane
+        
+        if self.hyperplane:
+            indices = torch.arange(self.bounds.shape[0], dtype=torch.long, device=tkwargs['device'])
+            coeffs = torch.ones(self.bounds.shape[0]).to(**tkwargs)
+            self.constraints = [(indices, coeffs, 1.0)]
+        else:
+            self.constraints = None
+        
         self.Rn = Euclidean(len(self.xt)) 
-        self.metric = lambda yi : -float(self.Rn.metric.dist(yi, self.yt))
         self.savedir = savedir
         if not os.path.exists(self.savedir):
             os.makedirs(self.savedir)
@@ -44,10 +53,12 @@ class Optimizer:
         self.suggest_next()
         self.new_obj = torch.tensor([]).to(**tkwargs)
 
+    def metric(self, yi):
+        return -float(self.Rn.metric.dist(yi, self.yt))
+    
     def draw_random_batch(self,n_samples):
         random_x = draw_sobol_samples(
-            bounds=self.bounds,n=1, q=n_samples, 
-            seed=torch.randint(2021, (1,)).item()
+            bounds=self.bounds,n=1, q=n_samples
         ).squeeze(0)
         
         return random_x
@@ -60,6 +71,7 @@ class Optimizer:
             num_restarts=64,
             raw_samples=1024, 
             sequential=False,
+            equality_constraints = self.constraints
         )
         
         return new_x
@@ -114,8 +126,11 @@ class Optimizer:
             
         return torch.stack(out, dim=0).to(**tkwargs)
 
-    def update(self, xlsx):
-        self.wavelengths, self.spectra = self.read_spectra(xlsx)
+    def update(self, xlsx, read_spectra=None):
+        if read_spectra is None:
+            self.wavelengths, self.spectra = self.read_spectra(xlsx)
+        else:
+            self.wavelengths, self.spectra = read_spectra(xlsx)
         self.new_obj = self.evaluate_batch(self.wavelengths, self.spectra)
         logging.info('Iteration : %d'%(self.iteration))
         
@@ -144,12 +159,16 @@ class Optimizer:
         np.save(idir+'/new_obj.npy',self.new_obj.numpy())
         np.save(idir+'/train_x.npy',self.train_x.numpy())
         np.save(idir+'/train_obj.npy',self.train_obj.numpy())
+
+        with open(idir + '/storage.pkl', 'wb') as handle:
+            pickle.dump(self.expt, handle, protocol=pickle.HIGHEST_PROTOCOL)
         if hasattr(self, 'model'):
             np.save(idir+'/wavelengths.npy',self.wavelengths)
             np.save(idir+'/spectra.npy',self.spectra)
             torch.save(self.model.state_dict(), idir+'/model.pth')
 
         return 
+        
         
         
         
