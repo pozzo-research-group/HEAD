@@ -274,7 +274,7 @@ class EmulatorMultiShape(Emulator):
         
 class EmulatorSingleParticle:
     
-    def __init__(self, verbose=True):
+    def __init__(self, verbose=False):
         self.verbose = verbose
         
     def get_uvvis(self, radius, length, theta=0.0, 
