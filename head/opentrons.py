@@ -23,6 +23,7 @@ tkwargs = {
     "device": torch.device("cuda" if torch.cuda.is_available() else "cpu"),
 }
 
+import pdb 
  
 class Optimizer:
     
@@ -33,8 +34,8 @@ class Optimizer:
         self.hyperplane = hyperplane
         
         if self.hyperplane:
-            indices = torch.arange(self.bounds.shape[0], dtype=torch.long, device=tkwargs['device'])
-            coeffs = torch.ones(self.bounds.shape[0]).to(**tkwargs)
+            indices = torch.arange(self.bounds.shape[1], dtype=torch.long, device=tkwargs['device'])
+            coeffs = torch.ones(self.bounds.shape[1]).to(**tkwargs)
             self.constraints = [(indices, coeffs, 1.0)]
         else:
             self.constraints = None
@@ -60,6 +61,10 @@ class Optimizer:
         random_x = draw_sobol_samples(
             bounds=self.bounds,n=1, q=n_samples
         ).squeeze(0)
+        
+        # a hack to project samples onto hyperplane
+        if self.hyperplane:
+            random_x = random_x/random_x.sum(axis=1)
         
         return random_x
         
