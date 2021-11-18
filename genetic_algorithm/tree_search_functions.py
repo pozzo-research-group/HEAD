@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-#from sklearn.preprocessing import MinMaxScaler 
+#from sklearn.preprocessing import MinMaxScaler
 from sklearn.gaussian_process import GaussianProcessRegressor
 from GA_functions import fitness, GA_algorithm_unnormalized, \
                          perform_iteration, set_seed
@@ -22,7 +22,7 @@ def zeroth_iteration(**kwargs):
     - mutation_rate_list: list of the mutation rates
     - mutation_rate_list_2: list of the second type of mutation rate
     '''
-    
+
     if 'conc_array' and 'spectra_array' and 'desired_spectra' in kwargs.keys() and 'single_data' not in kwargs.keys():
         conc_array = kwargs['conc_array']
         spectra_array = kwargs['spectra_array']
@@ -39,7 +39,7 @@ def zeroth_iteration(**kwargs):
         single_data = kwargs['single_data']
         single_desired = kwargs['single_desired']
         conc_array = kwargs['conc_array']
-        setting = 2 
+        setting = 2
     elif 'single_data' and 'spectra_array' in kwargs.keys():
         conc_array = kwargs['conc_array']
         spectra_array = kwargs['spectra_array']
@@ -48,7 +48,7 @@ def zeroth_iteration(**kwargs):
         single_desired = kwargs['single_desired']
         setting = 3
 
-  
+
     seed = np.random.randint(0, 100)
     set_seed(seed)
     # spectra = spectra.T
@@ -63,17 +63,17 @@ def zeroth_iteration(**kwargs):
     # Calculate Fitness
 
     if setting == 1:
-        a, median_fitness, max_fitness = fitness(spectra = spectra_array, 
-                                                 conc = conc_array, 
+        a, median_fitness, max_fitness = fitness(spectra = spectra_array,
+                                                 conc = conc_array,
                                                  desired_spectra = desired_spectra)
         current_gen_spectra = spectra_array
     elif setting == 2:
-        a, median_fitness, max_fitness = fitness(single_data = single_data, 
-                                                 conc = conc_array, 
+        a, median_fitness, max_fitness = fitness(single_data = single_data,
+                                                 conc = conc_array,
                                                  single_desired = single_desired)
     elif setting == 3:
-        a, median_fitness, max_fitness = fitness(spectra = spectra_array, 
-                                                 conc = conc_array, 
+        a, median_fitness, max_fitness = fitness(spectra = spectra_array,
+                                                 conc = conc_array,
                                                  desired_spectra = desired_spectra,
                                                  single_data = single_data,
                                                  single_desired = single_desired)
@@ -81,10 +81,10 @@ def zeroth_iteration(**kwargs):
     elif setting == 4:
         a, median_fitness, max_fitness = fitness(spectra_array_1 = spectra_array_1,
                                                  spectra_array_2 = spectra_array_2,
-                                                 conc = conc_array, 
+                                                 conc = conc_array,
                                                  desired_spectra_1 = desired_spectra_1,
                                                  desired_spectra_2 = desired_spectra_2)
-        
+
     # Appending to list
     i = 0
     median_fitness_list.append(median_fitness)
@@ -161,7 +161,7 @@ def zeroth_iteration(**kwargs):
                    'best_candidate_array':a}
     return output_dict
 
-    
+
 def perform_Surrogate_Prediction(next_gen_conc,
                                  conc_array_actual,
                                  spectra_array_actual):
@@ -322,7 +322,7 @@ def MCTS(MCTS_dict):
                 for J in range(0, 2*(move_number+1), 2):
                     if J == 0:
                         next_gen_conc = next_gen_conc_original
-                    if setting == 1:     
+                    if setting == 1:
                         loaded_dict = {'mutation_rate':move_array[row, J],
                                        'mutation_rate_2':move_array[row, J+1],
                                        'n_parents':50,
@@ -366,7 +366,7 @@ def MCTS(MCTS_dict):
                                        'desired_spectra_2':desired_spectra_2}
                         next_gen_conc, median_fitness, max_fitness = \
                             perform_iteration(loaded_dict)
-                        
+
                     if setting == 1:
                         ############################## NORMALIZATION #################################################
                         #spectra_array_actual = spectra_array_actual.T
@@ -392,11 +392,11 @@ def MCTS(MCTS_dict):
                                                          next_gen_conc,
                                                          conc_array_actual,
                                                          single_data_actual)
-                        conc_fitness, median_fitness, max_fitness = fitness(single_data = simulated_single_data, 
+                        conc_fitness, median_fitness, max_fitness = fitness(single_data = simulated_single_data,
                                                                      conc = next_gen_conc,
                                                                      single_desired = single_desired)
                         best_conc = conc_fitness[-1, simulated_single_data.shape[1]:]
-  
+
                     elif setting == 3:
                         ############################## NORMALIZATION #################################################
                         spectra_array_actual = spectra_array_actual.T
@@ -407,7 +407,7 @@ def MCTS(MCTS_dict):
                                                      next_gen_conc,
                                                      conc_array_actual,
                                                      spectra_array_actual)
-                        
+
                         simulated_single_data_scalar, surrogate_score_scalar = \
                             perform_Surrogate_Prediction(
                                                      next_gen_conc,
@@ -418,7 +418,7 @@ def MCTS(MCTS_dict):
                         simulated_spectra_vector = MinMaxScaler().fit(simulated_spectra_vector).transform(simulated_spectra_vector).T
                         ######################################################################################################
                         surrogate_score = (surrogate_score_scalar + surrogate_score_vector)/2
-                        conc_fitness, median_fitness, max_fitness = fitness(single_data = simulated_single_data_scalar, 
+                        conc_fitness, median_fitness, max_fitness = fitness(single_data = simulated_single_data_scalar,
                                                      conc = next_gen_conc,
                                                      spectra = simulated_spectra_vector,
                                                      single_desired = single_desired,
@@ -436,7 +436,7 @@ def MCTS(MCTS_dict):
                                                      next_gen_conc,
                                                      conc_array_actual,
                                                      spectra_array_actual_1)
-                        
+
                         simulated_spectra_2, surrogate_score_2 = \
                             perform_Surrogate_Prediction(
                                                      next_gen_conc,
@@ -449,12 +449,12 @@ def MCTS(MCTS_dict):
                         #simulated_spectra_2 = MinMaxScaler().fit(simulated_spectra_2).transform(simulated_spectra_2).T
                         ######################################################################################################
                         surrogate_score = (surrogate_score_1 + surrogate_score_2)/2
-                        conc_fitness, median_fitness, max_fitness = fitness(spectra_array_1 = simulated_spectra_1, 
+                        conc_fitness, median_fitness, max_fitness = fitness(spectra_array_1 = simulated_spectra_1,
                                                      conc = next_gen_conc,
                                                      spectra_array_2 = simulated_spectra_2,
                                                      desired_spectra_1 = desired_spectra_1,
                                                      desired_spectra_2 = desired_spectra_2)
-                        best_conc = conc_fitness[-1,:] 
+                        best_conc = conc_fitness[-1,:]
                     conc_fitness_list.append(best_conc)
                     Fitness_move_1.append(max_fitness)
                     conc_fitness_array = np.asarray(conc_fitness_list)
@@ -495,8 +495,8 @@ def MCTS(MCTS_dict):
     max_fitness = best_play[0][-1]
     mutation_rate = best_play[0][0]
     fitness_multiplier = best_play[0][1]
-    
-   
+
+
     return mutation_rate, fitness_multiplier, best_play, \
         best_move_number, max_fitness, surrogate_score, \
         best_conc_array, \
@@ -558,15 +558,15 @@ def nth_iteration(loaded_dict, **kwargs):
     Iterations = kwargs['Iterations']
     Moves_ahead = kwargs['Moves_ahead']
     GA_iterations = kwargs['GA_iterations']
-    n_samples = kwargs['n_samples']        
+    n_samples = kwargs['n_samples']
     set_seed(seed)
-    
+
     loaded_dict.update({'Iterations':Iterations})
     loaded_dict.update({'moves':Moves_ahead})
     loaded_dict.update({'GA_iterations':GA_iterations})
     loaded_dict.update({'seed':seed})
     loaded_dict.update({'n_samples':n_samples})
-    
+
     mutation_rate, mutation_rate_2, best_move, best_move_turn, \
         max_fitness, surrogate_score, \
         best_conc_array, \
@@ -577,14 +577,14 @@ def nth_iteration(loaded_dict, **kwargs):
     print('The surrogate model has a score of:', surrogate_score)
     print()
     mutation_rate_list = loaded_dict['mutation_rate_list']
-    mutation_rate_2_list = loaded_dict['mutation_rate_2_list']                                 
+    mutation_rate_2_list = loaded_dict['mutation_rate_2_list']
     mutation_rate_list.append(mutation_rate)
     mutation_rate_2_list.append(mutation_rate_2)
     loaded_dict.update({'mutation_rate':mutation_rate})
     loaded_dict.update({'mutation_rate_2':mutation_rate_2})
     loaded_dict.update({'mutation_rate_list':mutation_rate_list})
     loaded_dict.update({'mutation_rate_2_list':mutation_rate_2_list})
-    
+
     ###################### NORMALIZATION #############################
     #current_gen_spectra = loaded_dict['current_gen_spectra']
     #current_gen_spectra = current_gen_spectra.T
@@ -592,7 +592,7 @@ def nth_iteration(loaded_dict, **kwargs):
     #    transform(current_gen_spectra).T
     #loaded_dict.update({'current_gen_spectra':current_gen_spectra})
     ###################################################################
-    
+
     #if 'current_gen_spectra' and 'desired_spectra' in loaded_dict.keys() and 'single_data' not in loaded_dict.keys():
     #    setting = 1
     #    next_gen_conc, median_fitness, max_fitness = perform_iteration(loaded_dict)
@@ -617,10 +617,10 @@ def nth_iteration(loaded_dict, **kwargs):
     loaded_dict.update({'best_move':best_move})
     loaded_dict.update({'best_move_turn':best_move_turn})
     loaded_dict.update({'dictionary_of_moves':dictionary_of_moves})
-    
+
 #    if setting == 1:
 #        loaded_dict.update({current_gen_spectra})
-        
+
 #         output_dict = {'mutation_rate':mutation_rate,
 #                        'mutation_rate_2':mutation_rate_2,
 #                        'mutation_rate_list':mutation_rate_list,
@@ -653,7 +653,7 @@ def plot_fitness(loaded_dict, **kwargs):
     savefig = kwargs['savefig']
     next_gen_conc = loaded_dict['next_gen_conc']
     best_candidate_array = loaded_dict['best_candidate_array']
-    
+
     if 'current_gen_spectra' in loaded_dict.keys() and 'single_data' not in loaded_dict.keys():
         spectra = loaded_dict['current_gen_spectra']
         desired_spectra = loaded_dict['desired_spectra']
@@ -665,7 +665,7 @@ def plot_fitness(loaded_dict, **kwargs):
     elif 'single_data' in loaded_dict.keys() and 'current_gen_spectra' not in loaded_dict.keys():
         single_data = loaded_dict['single_data']
         single_desired = loaded_dict['single_desired']
-        array, median_fitness, max_fitness = fitness(single_data = single_data, 
+        array, median_fitness, max_fitness = fitness(single_data = single_data,
                                                  conc = next_gen_conc,
                                                  single_desired = single_desired)
         best_conc = array[-1, single_data.shape[1]:]
@@ -676,7 +676,7 @@ def plot_fitness(loaded_dict, **kwargs):
         single_desired = loaded_dict['single_desired']
         desired_spectra = loaded_dict['desired_spectra']
         spectra = loaded_dict['current_gen_spectra']
-        array, median_fitness, max_fitness = fitness(single_data = single_data, 
+        array, median_fitness, max_fitness = fitness(single_data = single_data,
                                                  conc = next_gen_conc,
                                                  single_desired = single_desired,
                                                  desired_spectra = desired_spectra,
@@ -684,7 +684,7 @@ def plot_fitness(loaded_dict, **kwargs):
                                                  )
         best_conc = array[-1, single_data.shape[1]: single_data.shape[1] + next_gen_conc.shape[1]]
         setting = 3
-    
+
     elif 'spectra_array_1' and 'spectra_array_2' in loaded_dict.keys():
         spectra_array_1 = loaded_dict['spectra_array_1']
         desired_spectra_1 = loaded_dict['desired_spectra_1']
@@ -693,12 +693,12 @@ def plot_fitness(loaded_dict, **kwargs):
         conc_array = loaded_dict['next_gen_conc']
         array, median_fitness, max_fitness = fitness(spectra_array_1 = spectra_array_1,
                                                  spectra_array_2 = spectra_array_2,
-                                                 conc = conc_array, 
+                                                 conc = conc_array,
                                                  desired_spectra_1 = desired_spectra_1,
                                                  desired_spectra_2 = desired_spectra_2)
         best_conc = array[-1,:]
         setting = 4
-    
+
     '''
         Plots the fitness of the generations with the iteration number
         Inputs:
@@ -740,7 +740,7 @@ def plot_fitness(loaded_dict, **kwargs):
 
     best_candidate_array = np.vstack((best_candidate_array, best_conc))
     best_conc = best_candidate_array[np.argsort(best_candidate_array[:, -1])]
-      
+
     print('The max fitness is:', max_fitness)
     print('The median fitness is:', median_fitness)
     print('The best candidate has input parameters of', best_conc[-1,:-1])
@@ -789,8 +789,8 @@ def plot_spectra(loaded_dict, **kwargs):
         ax[0].set_title('Spectra of All Samples')
         ax[0].set_ylabel('Absorbance')
         ax[0].set_xlabel('Wavelength (nm)')
-        ax[0].set_yscale('log')
-        ax[0].set_xscale('log')
+        #ax[0].set_yscale('log')
+        #ax[0].set_xscale('log')
         for ii in range(spectra.shape[0]):
             ax[0].plot(wavelength, spectra[ii, :])
         ax[0].legend(loc=2)
@@ -808,21 +808,21 @@ def plot_spectra(loaded_dict, **kwargs):
         ax[1].set_title('Spectra of Best Sample')
         ax[1].set_ylabel('Absorbance')
         ax[1].set_xlabel('Wavelength (nm)')
-        ax[1].set_yscale('log')
-        ax[1].set_xscale('log')
+        #ax[1].set_yscale('log')
+        #ax[1].set_xscale('log')
         ax[1].legend(loc=2)
     elif setting == 4:
         fig, ax = plt.subplots(ncols=2, nrows=2, figsize=(20, 20))
         ax[0,0].plot(wavelength_1, desired_spectra_1, label='Target', linewidth=5, c='k')
         ax[0,0].set_title('Spectra of All Samples')
         ax[0,0].set_ylabel('Intensity')
-        ax[0,0].set_xlabel('q (1/nm)')
-        ax[0,0].set_yscale('log')
-        ax[0,0].set_xscale('log')
+        ax[0,0].set_xlabel('Wavelength (nm)')
+        #ax[0,0].set_yscale('log')
+        #ax[0,0].set_xscale('log')
         for ii in range(spectra_array_1.shape[0]):
             ax[0,0].plot(wavelength_1, spectra_array_1[ii, :])
         ax[0,0].legend(loc=2)
-        
+
         fitness_list = []
         for ii in range(spectra_array_1.shape[0]):
             fitness_1 = 1/np.sum(np.abs(spectra_array_1[ii, :].reshape(-1,1) - desired_spectra_1.reshape(-1,1)))
@@ -838,23 +838,23 @@ def plot_spectra(loaded_dict, **kwargs):
                    label='Best Sample', linewidth=3)
         ax[0,1].set_title('Spectra of Best Sample')
         ax[0,1].set_ylabel('Intensity')
-        ax[0,1].set_xlabel('q (1/nm)')
-        ax[0,1].set_yscale('log')
-        ax[0,1].set_xscale('log')
+        ax[0,1].set_xlabel('Wavelength (nm)')
+        #ax[0,1].set_yscale('log')
+        #ax[0,1].set_xscale('log')
         ax[0,1].legend(loc=2)
-        
-        
+
+
         ax[1,0].plot(wavelength_2, desired_spectra_2, label='Target', linewidth=5, c='k')
-        ax[1,0].set_title('Spectra of All Samples')
-        ax[1,0].set_ylabel('Absorbance')
-        ax[1,0].set_xlabel('Wavelength (nm)')
-        ax[1,0].set_yscale('log')
+        ax[1,0].set_title('Correlogram of All Samples')
+        ax[1,0].set_ylabel('Correlation')
+        ax[1,0].set_xlabel('Time (us)')
+        #ax[1,0].set_yscale('log')
         ax[1,0].set_xscale('log')
         for ii in range(spectra_array_2.shape[0]):
             ax[1,0].plot(wavelength_2, spectra_array_2[ii, :])
         ax[1,0].legend(loc=2)
-        
-        
+
+
         fitness_list = []
         for ii in range(spectra_array_2.shape[0]):
             fitness_1 = 1/np.sum(np.abs(spectra_array_1[ii, :].reshape(-1,1) - desired_spectra_1.reshape(-1,1)))
@@ -868,10 +868,10 @@ def plot_spectra(loaded_dict, **kwargs):
                    linewidth=5, c='k')
         ax[1,1].plot(wavelength_2, sorted_array[-1, :-1],
                    label='Best Sample', linewidth=3)
-        ax[1,1].set_title('Spectra of Best Sample')
-        ax[1,1].set_ylabel('Absorbance')
-        ax[1,1].set_xlabel('Wavelength (nm)')
-        ax[1,1].set_yscale('log')
+        ax[1,1].set_title('Correlogram of Best Sample')
+        ax[1,1].set_ylabel('Correlation')
+        ax[1,1].set_xlabel('Time (us)')
+        #ax[1,1].set_yscale('log')
         ax[1,1].set_xscale('log')
         ax[1,1].legend(loc=2)
     figure_name = 'Iteration_' + str(iteration[-1]) + '.png'
