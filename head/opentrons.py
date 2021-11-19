@@ -34,7 +34,8 @@ class Optimizer:
         self.hyperplane = hyperplane
         
         if self.hyperplane:
-            indices = torch.arange(self.bounds.shape[1], dtype=torch.long, device=tkwargs['device'])
+            indices = torch.arange(self.bounds.shape[1], dtype=torch.long, 
+                device=tkwargs['device'])
             coeffs = torch.ones(self.bounds.shape[1]).to(**tkwargs)
             self.constraints = [(indices, coeffs, 1.0)]
         else:
@@ -62,10 +63,6 @@ class Optimizer:
             bounds=self.bounds,n=1, q=n_samples
         ).squeeze(0)
         
-        # a hack to project samples onto hyperplane
-        if self.hyperplane:
-            random_x = random_x/random_x.sum(axis=1)
-        
         return random_x
         
     def selector(self,acquisition):
@@ -88,12 +85,14 @@ class Optimizer:
         
         return
         
-        
     def suggest_next(self):
         logging.info('Getting suggestions for iteration %d'%self.iteration)
         
         if self.iteration==0:
             self.new_x = self.draw_random_batch(n_samples=self.batch_size)
+            # a hack to project samples onto hyperplane
+            if self.hyperplane:
+                self.new_x = torch.div(self.new_x.T, self.new_x.sum(axis=1)).T
         else:
             fit_gpytorch_model(self.mll)
             self.best_f = self.train_obj.max(axis=0).values
