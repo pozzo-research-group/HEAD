@@ -295,8 +295,6 @@ class EmulatorSingleParticle:
         efield = fields.efield(field_generator, 
                        wavelengths=wavelengths, kwargs=kwargs)
         
-        num_dipoles = num_dipoles
-
         if np.isclose(radius,length, atol=1e-2):
             scale_factor = ((3*num_dipoles)/(4*np.pi))**(1/3)
             step = radius/scale_factor
