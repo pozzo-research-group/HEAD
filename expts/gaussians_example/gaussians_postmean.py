@@ -14,11 +14,9 @@ plt.rcParams.update({"text.usetex": True,
                     }
                    )
 
-import head
-
-from scipy.spatial import distance
-
 import torch
+torch.seed()
+
 tkwargs = {
     "dtype": torch.double,
     "device": torch.device("cuda" if torch.cuda.is_available() else "cpu"),
@@ -39,24 +37,29 @@ from matplotlib.cm import ScalarMappable
 import geomstats.backend as gs
 from geomstats.geometry.poincare_half_space import PoincareHalfSpace
 from geomstats.geometry.euclidean import Euclidean
-from geomstats.geometry.functions import L2Space, SinfSpace, ProbabilityDistributions, SRVF
+from geomstats.geometry.functions import L2Space, SRVF
 import geomstats.visualization as viz
-from geomstats.geometry.hyperboloid import Hyperboloid
+
+from scipy.spatial import distance
 
 import fdasrsf as fs
 
+import head
+
 N_SAMPLES = 100
 BATCH_SIZE = 4
-N_ITERATIONS = 45
+N_ITERATIONS = 24
 NUM_RESTARTS = 64 
 RAW_SAMPLES = 1024
-N_INIT_SAMPLES = 2
-NUM_FILTERS = 5
+N_INIT_SAMPLES = 4
 
 TARGET = [-2,0.5]
 VERBOSE = False
 savedir = './'
-metric = 'ap'
+if not os.path.exists(savedir):
+    os.makedirs(savedir)
+    
+metric = 'srvf'
 print('Using the %s metric'%metric)
 
 lambda_ = np.linspace(-5,5,num=N_SAMPLES)
@@ -70,9 +73,8 @@ fig, ax = plt.subplots()
 ax.plot(lambda_, yt)
 plt.savefig(savedir+'target.png')
 
-
 # define search space
-param_mu = [-5,5]
+param_mu = [-10,10]
 param_sig = [0.1,3.5]
 bounds = torch.tensor((param_mu, param_sig)).T.to(**tkwargs)
 
@@ -88,35 +90,17 @@ random_x = draw_random_batch(n_samples=N_INIT_SAMPLES)
 
 
 # Metric selection
-
 H2 = PoincareHalfSpace(2)
 Rn = Euclidean(N_SAMPLES)
-R2 = Euclidean(len(TARGET))
 L2 = L2Space(lambda_)
-Sinf = SinfSpace(lambda_)
-PD = ProbabilityDistributions(lambda_)
 srvf = SRVF(lambda_)
 
 if metric=='L2':
     d = lambda xi,yi : -L2.metric.dist(yi, yt)
 elif metric=='Rn':
     d = lambda xi,yi : -float(Rn.metric.dist(yi, yt))
-elif metric=='H2':
-    xt = np.asarray(TARGET).reshape(1,2)
-    d = lambda xi,yi : -float(H2.metric.dist(xi.reshape(1,2),xt))
-elif metric=='R2':
-    xt = np.asarray(TARGET).reshape(1,2)
-    d = lambda xi,yi : -float(R2.metric.dist(xi.reshape(1,2),xt))  
-elif metric=='Sinf':
-    d = lambda xi,yi : -Sinf.metric.dist(yi, yt)
-elif metric=='PD':
-    yt_p = PD.projection(yt)
-    def d(xi,yi):
-        yi_p = PD.projection(yi)
-        return -PD.metric.dist(yi_p, yt_p)
 elif metric=='srvf':
-    d = lambda xi,yi : -srvf.metric.dist(yi, yt)
-    
+    d = lambda xi,yi : -srvf.metric.dist(yi, yt) 
 elif metric=='ap':
     def d(xi, yi):
         curves = np.zeros((len(yt), 2))
@@ -127,10 +111,9 @@ elif metric=='ap':
         dp = fs.efda_distance_phase(obj.qn[...,0], obj.qn[...,1])
         da = fs.efda_distance(obj.qn[...,0], obj.qn[...,1])
         
-        return -(da+dp)   
+        return -(da+dp)    
 else:
     raise NotImplementedError('Metric %s is not implemented'%metric)
-
 
 class Oracle:
     def __init__(self, metric):
@@ -194,7 +177,10 @@ if VERBOSE:
 # run N_ITERATIONS rounds of BayesOpt after the initial random batch
 if VERBOSE:
     print('Sampled ID \t Locations \t Objectives')
-for iteration in range(1, N_ITERATIONS + 1): 
+    
+best_ind = []
+best_loc = []
+for iteration in range(N_ITERATIONS + 1): 
     # re-initialize
     mll, model = initialize_model(train_x, train_obj)
     if VERBOSE:
@@ -202,57 +188,48 @@ for iteration in range(1, N_ITERATIONS + 1):
     # fit the models
     fit_gpytorch_model(mll)
 
-    # define the acquisition module
-    #acquisition = qUpperConfidenceBound(model, beta=0.1)
-    best_f = train_obj.max(axis=0).values
-    acquisition = qExpectedImprovement(model, best_f = 0.0)
-    
     # optimize acquisition functions and get new observations
-    new_x, new_obj = selector(acquisition, oracle)
-    if VERBOSE:
-        for i in range(BATCH_SIZE):
-            print('%d\t%s\t%s'%(i, new_x[i,...].numpy(), 
-                                new_obj[i,...].numpy()))
-
-    # update training points
-    train_x = torch.cat([train_x, new_x])
-    train_obj = torch.cat([train_obj, new_obj])
-
+    if iteration>0:
+        # define the acquisition module
+        best_f = train_obj.max(axis=0).values
+        acquisition = qExpectedImprovement(model, best_f = 0.0)
+        new_x, new_obj = selector(acquisition, oracle)
+        # update training points
+        train_x = torch.cat([train_x, new_x])
+        train_obj = torch.cat([train_obj, new_obj])
+        if VERBOSE:
+            for i in range(BATCH_SIZE):
+                print('%d\t%s\t%s'%(i, new_x[i,...].numpy(), 
+                                    new_obj[i,...].numpy()))
     
+    # obtain the current best from the model using posterior
+    opt_x, opt_obj = selector(PosteriorMean(model), oracle, q=1)
+    best_loc.append(opt_x)
+    best_ind.append(oracle.expt_id-1)
+
 
 expt = oracle.expt
-
-batch_number = torch.cat(
-    [torch.zeros(N_INIT_SAMPLES), 
-     torch.arange(1, N_ITERATIONS+1).repeat(BATCH_SIZE, 1).t().reshape(-1)]
-).numpy()
-
+best_loc = torch.cat(best_loc).numpy()
+xt = np.asarray(TARGET).reshape(1,2)
 
 print('Plotting the distance between target and design space points ...')
 
-def plot_best_trace(ax, train_x, train_obj, target):
-    train_x = train_x.cpu().numpy()
-    proximities = distance.cdist(train_x, np.asarray(TARGET).reshape(1,2))
-    trace = np.asarray([min(proximities[batch_number<=b]) for b in np.unique(batch_number)])
-    return ax.plot(np.arange(N_ITERATIONS+1),trace)
-
 fig, ax = plt.subplots()
 ax.axhline(0, label='Optimal', ls='--', lw='2.0', c='k')
-plot_best_trace(ax, train_x, train_obj, TARGET)
+trace = distance.cdist(best_loc, xt)
+ax.plot(np.arange(N_ITERATIONS+1),trace)
 ax.set_xlabel('Batch number')
 ax.set_ylabel(r'$||x-x_{t}||_{2}$')
-plt.savefig(savedir+'/trace_design_space.png')
+plt.savefig(savedir+'/trace_design_space_%s.png'%metric)
 
 print('Plotting the trace in spectra and design space ...')
 fig, axs = plt.subplots(1,2,figsize=(5*2,5))
-batches = np.unique(batch_number)
-best_ind = [np.argmax(train_obj.numpy()[batch_number<=b]) for b in batches]
-best_loc = train_x[best_ind].numpy()
+batches = np.arange(N_ITERATIONS+1)
 
 ax = axs[0]
 ax.plot(lambda_, yt, 'k--', lw=2.0)
 cmap = cm.get_cmap('coolwarm')
-norm = matplotlib.colors.Normalize(vmin=0, vmax = len(batches))
+norm = matplotlib.colors.Normalize(vmin=0, vmax = N_ITERATIONS+1)
 for i, bind in enumerate(best_ind):
     wl, ext, _ = expt[bind]
     ax.plot(wl, ext, color=cmap(norm(i)))
@@ -265,10 +242,11 @@ cbar.ax.set_ylabel('Batch number/ Time', rotation=270)
 cbar.ax.get_yaxis().labelpad = 15
 
 ax = axs[1]
-ax.scatter(best_loc[:,0], best_loc[:,1],c=batches,cmap='coolwarm', label='BO trace')
-ax.scatter(TARGET[0], TARGET[1], marker='*', s=100, facecolors='none', color='k', lw=2.0, label='Target')
+ax.scatter(best_loc[:,0], best_loc[:,1],c=batches,
+    cmap='coolwarm', label='BO trace')
+ax.scatter(TARGET[0], TARGET[1], marker='*', s=100, 
+    facecolors='none', color='k', lw=2.0, label='Target')
 
-xt = np.asarray(TARGET).reshape(1,2)
 x0 = best_loc[0,:]
 n_points = 20
 t = np.linspace(0, 1, n_points)
@@ -282,21 +260,21 @@ ax.set_ylim(bounds.numpy()[:,1] + np.asarray([-0.1,0.1]))
 ax.legend()
 plt.savefig(savedir+'/trace_%s.png'%metric)
 
+with torch.no_grad():
+    num_grid_spacing = 20
+    mu_grid = np.linspace(*bounds[:,0].numpy(), num=num_grid_spacing)
+    sig_grid = np.linspace(*bounds[:,1].numpy(), num=num_grid_spacing)
+    test_x = head.Grid(mu_grid, sig_grid).points
+    posterior = model.posterior(torch.tensor(test_x).to(**tkwargs))
+    posterior_mean = posterior.mean.cpu().numpy()
+    XX, YY = np.meshgrid(mu_grid, sig_grid)
+    Z = posterior_mean.reshape(num_grid_spacing,num_grid_spacing)
+    fig, ax = plt.subplots()
+    ax.contourf(XX, YY, Z, cmap=cm.Blues)
+    ax.scatter(TARGET[0], TARGET[1], marker='*', s=200,color='tab:red', lw=2.0,fc='none')
+    ax.scatter(opt_x[0][0], opt_x[0][1], marker='*', s=200,lw=2.0,fc='none',color='k')
 
-# Poincare ball plot
-print('Plotting the trace in a Poincaré ball')
-Hb = Hyperboloid(2)
-fig, ax = plt.subplots()
-disk = viz.PoincareDisk()
-circle = plt.Circle((0, 0), radius=1.0, color="black", fill=False)
-ax.add_patch(circle)
-pt_minkowski = np.hstack(((batches+1).reshape(N_ITERATIONS+1,1), best_loc))
-pt_hb = Hb.projection(pt_minkowski)
-disk.add_points(pt_hb)
-disk.draw(ax,c=batches,cmap='coolwarm')
-ax.axis('equal')
-ax.axis('off')
-ax.set_title('Poincaré Ball Representation')
-plt.savefig(savedir+'/poincare_ball_%s.png'%metric)
-
-plt.close('all')
+    plt.savefig(savedir+'/model_%s.png'%metric)
+    
+    
+    

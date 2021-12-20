@@ -42,52 +42,39 @@ from geomstats import visualization as viz
 import geomstats.visualization as viz
 from geomstats.geometry.hyperboloid import Hyperboloid
 
+import fdasrsf as fs
+
 N_SAMPLES = 100
 BATCH_SIZE = 4
-N_ITERATIONS = 20
+N_ITERATIONS = 16
 NUM_RESTARTS = 64 
 RAW_SAMPLES = 1024
-N_INIT_SAMPLES = 2
+N_INIT_SAMPLES = 4
 NUM_DIPOLES = 100
-N_REPEAT = 5
+N_REPEAT = 8
 
-TARGET = [5,15,45]
-VERBOSE = True
+TARGET = [-2,0.5]
+VERBOSE = False
 savedir = './'
 
-class InputTransform:
-    def __init__(self, bounds):
-        self.min = bounds.min(axis=0).values
-        self.range = bounds.max(axis=0).values-self.min
-        
-    def transform(self, x):
-        return (x-self.min)/self.range
-    
-    def inverse(self, xt):
-        return (self.range*xt)+self.min
- 
-# define search space
-param_r = [2,20]
-param_theta = [0,90]
-param_length = [2,20]
-bounds_params = torch.tensor((param_r, param_length, param_theta)).T.to(**tkwargs)
-inp = InputTransform(bounds_params)
-xt = inp.transform(torch.tensor(TARGET)).reshape(1,len(TARGET)).numpy()
+lambda_ = np.linspace(-5,5,num=N_SAMPLES)
+def gaussian(mu,sig):
+    scale = 1/(np.sqrt(2*np.pi)*sig)
+    return scale*np.exp(-np.power(lambda_ - mu, 2.) / (2 * np.power(sig, 2.)))
 
-bounds = torch.tensor(([1e-3,1],[1e-3,1],[1e-3,1])).T.to(**tkwargs) 
-   
-sim = EmulatorSingleParticle(verbose=False)
-lambda_, yt = sim.get_uvvis(radius=TARGET[0], length=TARGET[1], theta=TARGET[2],
- num_dipoles=NUM_DIPOLES)
+yt = gaussian(*TARGET)
+xt = np.asarray(TARGET).reshape(1,2)
+
+# define search space
+param_mu = [-10,10]
+param_sig = [0.1,3.5]
+bounds = torch.tensor((param_mu, param_sig)).T.to(**tkwargs)
 
 def draw_random_batch(n_samples=6):
     train_x = draw_sobol_samples(
         bounds=bounds,n=1, q=n_samples,
         seed=torch.randint(2021, (1,)).item()).squeeze(0)
     return train_x
-
-random_x = draw_random_batch(n_samples=N_INIT_SAMPLES)
-
 
 Rn = Euclidean(N_SAMPLES)
 L2 = L2Space(lambda_)
@@ -105,25 +92,24 @@ class Oracle:
         Uses the simulator sim to generate response spectra at a given locations
         and return a similarity score to target spectra
         """
-        x = inp.inverse(x)
         x_np = x.cpu().numpy()
-        _, yi = sim.get_uvvis(radius=x_np[0], length=x_np[1], theta=x_np[2],
-            num_dipoles = NUM_DIPOLES)
-        dist = self.metric(x_np, yi)
+        yi = gaussian(x_np[0],x_np[1])
+        dist = self.metric(x_np, yi)+1e-6
 
         self.expt[self.expt_id] = [lambda_, yi, dist]
     
         return torch.tensor([dist])
     
     def batch_evaluate(self, x):
-        print('Current experiment id : ', self.expt_id)
+        if VERBOSE:
+            print('Current experiment id : ', self.expt_id)
         out = []
         for xi in x.squeeze(1):
             out.append(self.evaluate(xi))
             self.expt_id += 1
         return torch.stack(out, dim=0).to(**tkwargs)
     
-
+    
 def initialize_model(train_x, train_obj):
     # define models for objective and constraint
     model = SingleTaskGP(train_x, train_obj, 
@@ -157,7 +143,18 @@ def run(metric, xt):
             
             return -PD.metric.dist(yi_p, yt_p)
     elif metric=='srvf':
-        d = lambda xi,yi : -srvf.metric.dist(yi, yt)     
+        d = lambda xi,yi : -srvf.metric.dist(yi, yt)    
+    elif metric=='ap':
+        def d(xi, yi):
+            curves = np.zeros((len(yt), 2))
+            curves[...,0] = yt
+            curves[...,1] = yi
+            obj = fs.fdawarp(curves, lambda_)
+            obj.srsf_align(parallel=True)
+            dp = fs.efda_distance_phase(obj.qn[...,0], obj.qn[...,1])
+            da = fs.efda_distance(obj.qn[...,0], obj.qn[...,1])
+            
+            return -(da+dp)  
     else:
         raise NotImplementedError('Metric %s is not implemented'%metric)
 
@@ -208,26 +205,36 @@ def run(metric, xt):
                                     new_obj[i,...].numpy()))
 
     expt = oracle.expt
-    best_loc = inp.inverse(torch.cat(best_loc).numpy())
-    train_x = inp.inverse(train_x.cpu().numpy())
-    xt = inp.inverse(xt)
+    best_loc = torch.cat(best_loc).numpy()
         
-    print('Plotting the distance between best and target in search space ...')
     proximities = distance.cdist(best_loc, xt)
     
     return proximities
   
-fig, ax = plt.subplots()  
-proximities = np.zeros((3, N_REPEAT,N_ITERATIONS + 1))    
-for i,metric in enumerate(['Rn', 'L2', 'srvf']):
-    for j in range(N_REPEAT):
+# Perform the experiment
+METRICS = ['Rn', 'L2', 'srvf','ap']  
+proximities = np.zeros((len(METRICS), N_REPEAT,N_ITERATIONS + 1))    
+for j in range(N_REPEAT):
+    torch.seed()
+    random_x = draw_random_batch(n_samples=N_INIT_SAMPLES)
+    for i,metric in enumerate(METRICS):
         proximities[i,j,:] = run(metric, xt).squeeze()
-    ax.plot(np.arange(N_ITERATIONS+1),proximities.mean(axis=1)[i,...])
-    
-ax.legend([r'$\mathbb{R}^n$', r'$\mathbb{L}_{2}$', 'SRVF'])
-ax.axhline(0, ls='--', lw='2.0', c='k')  
-ax.set_xlabel('Batch number')
-ax.set_ylabel(r'$||x-x_{t}||_{2}$')
-plt.savefig('metric_compare_3d.png')
+        print('Repeat %d\tMetric : %s\tFinal distance: %.2f'%(j,metric,proximities[i,j,:][-1]))
+np.save('proximities.npy', proximities)   
+
+fig, axs = plt.subplots(1,len(METRICS), figsize=(4*len(METRICS), 4), sharey=True, sharex=True) 
+labels = [r'$\mathbb{R}^n$', r'$\mathbb{L}_{2}$', 'SRVF', 'Amplitude-Phase']    
+for i,_ in enumerate(METRICS):
+    ax = axs[i]
+    y_mean = proximities.mean(axis=1)[i,...]
+    y_std = proximities.std(axis=1)[i,...]
+    ax.plot(np.arange(N_ITERATIONS+1), y_mean, lw=2.0)
+    ax.fill_between(np.arange(N_ITERATIONS+1), y_mean-y_std, y_mean+y_std, alpha=0.2)
+    ax.set_title(labels[i])
+    ax.axhline(0, ls='--', lw='2.0', c='k')  
+
+axs[0].set_ylabel(r'$||x-x_{t}||_{2}$')
+fig.supxlabel('Batch number', y=-0.05)
+plt.savefig('metric_compare.png')
 plt.show()
 
