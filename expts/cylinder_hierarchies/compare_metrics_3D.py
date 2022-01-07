@@ -52,7 +52,7 @@ NUM_DIPOLES = 100
 N_REPEAT = 5
 
 TARGET = [5,15,45]
-VERBOSE = True
+VERBOSE = False
 savedir = './'
 
 class InputTransform:
@@ -116,7 +116,8 @@ class Oracle:
         return torch.tensor([dist])
     
     def batch_evaluate(self, x):
-        print('Current experiment id : ', self.expt_id)
+        if VERBOSE:
+            print('Current experiment id : ', self.expt_id)
         out = []
         for xi in x.squeeze(1):
             out.append(self.evaluate(xi))
@@ -150,12 +151,6 @@ def run(metric, xt):
         d = lambda xi,yi : -L2.metric.dist(yi, yt)
     elif metric=='Rn':
         d = lambda xi,yi : -float(Rn.metric.dist(yi, yt))
-    elif metric=='PD':
-        def d(xi,yi):
-            yi_p = PD.projection(yi)
-            yt_p = PD.projection(yt)
-            
-            return -PD.metric.dist(yi_p, yt_p)
     elif metric=='srvf':
         d = lambda xi,yi : -srvf.metric.dist(yi, yt)     
     else:
@@ -191,7 +186,7 @@ def run(metric, xt):
         acquisition = qExpectedImprovement(model, best_f = 0.0)
         
         # optimize acquisition functions and get new observations
-        if iteration<N_ITERATIONS:
+        if iteration>0:
             new_x, new_obj = selector(acquisition, oracle)
             # update training points
             train_x = torch.cat([train_x, new_x])
@@ -212,22 +207,34 @@ def run(metric, xt):
     train_x = inp.inverse(train_x.cpu().numpy())
     xt = inp.inverse(xt)
         
-    print('Plotting the distance between best and target in search space ...')
     proximities = distance.cdist(best_loc, xt)
     
     return proximities
   
-fig, ax = plt.subplots()  
-proximities = np.zeros((3, N_REPEAT,N_ITERATIONS + 1))    
-for i,metric in enumerate(['Rn', 'L2', 'srvf']):
-    for j in range(N_REPEAT):
+# Perform the experiment
+METRICS = ['Rn', 'srvf']  
+proximities = np.zeros((len(METRICS), N_REPEAT,N_ITERATIONS + 1))    
+for j in range(N_REPEAT):
+    torch.seed()
+    random_x = draw_random_batch(n_samples=N_INIT_SAMPLES)
+    for i,metric in enumerate(METRICS):
         proximities[i,j,:] = run(metric, xt).squeeze()
-    ax.plot(np.arange(N_ITERATIONS+1),proximities.mean(axis=1)[i,...])
-    
-ax.legend([r'$\mathbb{R}^n$', r'$\mathbb{L}_{2}$', 'SRVF'])
-ax.axhline(0, ls='--', lw='2.0', c='k')  
-ax.set_xlabel('Batch number')
-ax.set_ylabel(r'$||x-x_{t}||_{2}$')
-plt.savefig('metric_compare_3d.png')
+        print('Repeat %d\tMetric : %s\tFinal distance: %.2f'%(j,metric,proximities[i,j,:][-1]))
+np.save('proximities.npy', proximities)   
+
+fig, axs = plt.subplots(1,len(METRICS), figsize=(4*len(METRICS), 4), sharey=True, sharex=True) 
+labels = [r'$\mathbb{R}^n$', 'SRVF']    
+for i,_ in enumerate(METRICS):
+    ax = axs[i]
+    y_mean = proximities.mean(axis=1)[i,...]
+    y_std = proximities.std(axis=1)[i,...]
+    ax.plot(np.arange(N_ITERATIONS+1), y_mean, lw=2.0)
+    ax.fill_between(np.arange(N_ITERATIONS+1), y_mean-y_std, y_mean+y_std, alpha=0.2)
+    ax.set_title(labels[i])
+    ax.axhline(0, ls='--', lw='2.0', c='k')  
+
+axs[0].set_ylabel(r'$||x-x_{t}||_{2}$')
+fig.supxlabel('Batch number', y=-0.05)
+plt.savefig('metric_compare.png')
 plt.show()
 

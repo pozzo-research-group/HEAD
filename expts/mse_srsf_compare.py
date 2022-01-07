@@ -5,40 +5,62 @@ plt.rcParams.update({"text.usetex": True,
                      "axes.spines.top" : False,
                      "font.size": 15,
                      "savefig.dpi": 400,
-                     "savefig.bbox": 'tight',
-                     'text.latex.preamble': r'\usepackage{amsfonts}'
+                     "savefig.bbox": "tight",
+                     'text.latex.preamble': r"\usepackage{amsfonts}"
                     }
                    )
 
 from geomstats.geometry.euclidean import Euclidean
 from geomstats.geometry.functions import SRVF
 
+import fdasrsf as fs
+
 N_SAMPLES = 100
-TARGET = [-2,0.5]
+TARGET = [0,0.5]
 
 lambda_ = np.linspace(-5,5,num=N_SAMPLES)
 Rn = Euclidean(N_SAMPLES)
-srvf = SRVF(lambda_)
+srsf = SRVF(lambda_)
 def gaussian(mu,sig):
     scale = 1/(np.sqrt(2*np.pi)*sig)
     return scale*np.exp(-np.power(lambda_ - mu, 2.) / (2 * np.power(sig, 2.)))
 
 yt = gaussian(*TARGET)
 
-dRn = lambda xi,yi : -float(Rn.metric.dist(yi, yt))
+dRn = lambda xi,yi : float(Rn.metric.dist(yi, yt))
 
-dSRSF = lambda xi,yi : -srvf.metric.dist(yi, yt)   
+dSRSF = lambda xi,yi : srsf.metric.dist(yi, yt)   
 
-test_x = np.linspace(-5, 5, 51)
+test_x = np.linspace(-5, 5, 101)
+
+fig, axs = plt.subplots(1,2, figsize=(4*2, 4))
+fig.subplots_adjust(wspace=0.3)
 ground_truth_Rn = [dRn(i, gaussian(i,TARGET[1])) for i in test_x]
-fig, ax = plt.subplots()
-ax.plot(test_x, ground_truth_Rn , label=r'$\mathbb{R}^n$')
-ground_truth_srvf = [dSRSF(i, gaussian(i,TARGET[1])) for i in test_x]
-
-ax.plot(test_x, ground_truth_srvf, label='SRSF')
-
-ax.set_xlabel(r'$\mathcal{X}$')
+ax = axs[0]
+ax.plot(test_x, ground_truth_Rn, label='MSE',color='k')
 ax.set_ylabel(r'$d_{\mathcal{M}}(x, x_{t})$')
-ax.legend()
+
+ground_truth_srvf = [dSRSF(i, gaussian(i,TARGET[1])) for i in test_x]
+ax.plot(test_x, ground_truth_srvf, label='SRSF',color='k', ls='--')
+ax.legend(ncol=2,loc='upper center', bbox_to_anchor=[0.5,1.2])
+
+def elastic_distance(xi, yi):
+    curves = np.zeros((N_SAMPLES, 2))
+    curves[...,0] = yt
+    curves[...,1] = yi
+    obj = fs.fdawarp(curves, lambda_)
+    obj.srsf_align(parallel=True, MaxItr=50)
+    dp = fs.efda_distance_phase(obj.qn[...,0], obj.qn[...,1])
+    da = fs.efda_distance(obj.qn[...,0], obj.qn[...,1])
+    
+    return da, dp
+
+ax = axs[1]
+efda = np.asarray([elastic_distance(i, gaussian(i,TARGET[1])) for i in test_x])
+ax.plot(test_x, efda[:,0], label=r"$d_{a}$")
+ax.plot(test_x, efda[:,1], label=r"$d_{p}$")
+ax.plot(test_x, efda.sum(axis=1), label=r"$d_{a}+d_{p}$")
+ax.legend(ncol=3,loc='upper center', bbox_to_anchor=[0.5,1.2])
+fig.supxlabel(r'$\mathcal{X}$', y=-0.05)
 plt.savefig('mse_vs_srsf.png')
 plt.close()

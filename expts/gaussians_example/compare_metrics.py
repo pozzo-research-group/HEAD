@@ -44,12 +44,15 @@ from geomstats.geometry.hyperboloid import Hyperboloid
 
 import fdasrsf as fs
 
+import warnings
+warnings.filterwarnings("ignore")
+
 N_SAMPLES = 100
 BATCH_SIZE = 4
 N_ITERATIONS = 16
 NUM_RESTARTS = 64 
 RAW_SAMPLES = 1024
-N_INIT_SAMPLES = 4
+N_INIT_SAMPLES = 1
 NUM_DIPOLES = 100
 N_REPEAT = 8
 
@@ -57,18 +60,32 @@ TARGET = [-2,0.5]
 VERBOSE = False
 savedir = './'
 
+class InputTransform:
+    def __init__(self, bounds):
+        self.min = bounds.min(axis=0).values
+        self.range = bounds.max(axis=0).values-self.min
+        
+    def transform(self, x):
+        return (x-self.min)/self.range
+    
+    def inverse(self, xt):
+        return (self.range*xt)+self.min
+
 lambda_ = np.linspace(-5,5,num=N_SAMPLES)
 def gaussian(mu,sig):
     scale = 1/(np.sqrt(2*np.pi)*sig)
     return scale*np.exp(-np.power(lambda_ - mu, 2.) / (2 * np.power(sig, 2.)))
 
 yt = gaussian(*TARGET)
-xt = np.asarray(TARGET).reshape(1,2)
 
 # define search space
 param_mu = [-10,10]
 param_sig = [0.1,3.5]
-bounds = torch.tensor((param_mu, param_sig)).T.to(**tkwargs)
+bounds_params = torch.tensor((param_mu, param_sig)).T.to(**tkwargs)
+inp = InputTransform(bounds_params)
+
+xt = inp.transform(torch.tensor(TARGET)).reshape(1,len(TARGET)).numpy()
+bounds = torch.tensor(([1e-3,1],[1e-3,1])).T.to(**tkwargs)
 
 def draw_random_batch(n_samples=6):
     train_x = draw_sobol_samples(
@@ -92,6 +109,7 @@ class Oracle:
         Uses the simulator sim to generate response spectra at a given locations
         and return a similarity score to target spectra
         """
+        x = inp.inverse(x)
         x_np = x.cpu().numpy()
         yi = gaussian(x_np[0],x_np[1])
         dist = self.metric(x_np, yi)+1e-6
@@ -131,7 +149,7 @@ def selector(f,oracle, q = BATCH_SIZE):
     return new_x, new_obj
 
 
-def run(metric, xt):
+def run(metric, xt, random_x):
     if metric=='L2':
         d = lambda xi,yi : -L2.metric.dist(yi, yt)
     elif metric=='Rn':
@@ -173,37 +191,36 @@ def run(metric, xt):
     if VERBOSE:
         print('Sampled ID \t Locations \t Objectives')
         
-    best_ind = []
-    best_loc = []
-    for iteration in range(N_ITERATIONS + 1):
+    best_ind = [torch.argmax(train_obj)]
+    best_loc = [train_x[best_ind[0],...].reshape(1,2)]
+    for iteration in range(N_ITERATIONS):
         mll, model = initialize_model(train_x, train_obj)
-     
+        
+        # fit the models
+        fit_gpytorch_model(mll)     
+        
         if VERBOSE:
             print('Iteration : %d/%d'%(iteration, N_ITERATIONS))
-        # fit the models
-        fit_gpytorch_model(mll)
 
         # define the acquisition module
-        best_f = train_obj.max(axis=0).values
         acquisition = qExpectedImprovement(model, best_f = 0.0)
         
         # optimize acquisition functions and get new observations
-        if iteration<N_ITERATIONS:
-            new_x, new_obj = selector(acquisition, oracle)
-            # update training points
-            train_x = torch.cat([train_x, new_x])
-            train_obj = torch.cat([train_obj, new_obj])
-        
-        # obtain the current best from the model using posterior
-        opt_x, opt_obj = selector(PosteriorMean(model), oracle, q=1)
-        best_loc.append(opt_x)
-        best_ind.append(oracle.expt_id-1)
+        new_x, new_obj = selector(acquisition, oracle)
+        # update training points
+        train_x = torch.cat([train_x, new_x])
+        train_obj = torch.cat([train_obj, new_obj])
         
         if VERBOSE:
             for i in range(BATCH_SIZE):
                 print('%d\t%s\t%s'%(i, new_x[i,...].numpy(), 
                                     new_obj[i,...].numpy()))
-
+                
+        # obtain the current best from the model using posterior
+        opt_x, opt_obj = selector(PosteriorMean(model), oracle, q=1)
+        best_loc.append(opt_x)
+        best_ind.append(oracle.expt_id-1)
+        
     expt = oracle.expt
     best_loc = torch.cat(best_loc).numpy()
         
@@ -212,18 +229,19 @@ def run(metric, xt):
     return proximities
   
 # Perform the experiment
-METRICS = ['Rn', 'L2', 'srvf','ap']  
+METRICS = ['Rn','ap']  
 proximities = np.zeros((len(METRICS), N_REPEAT,N_ITERATIONS + 1))    
 for j in range(N_REPEAT):
     torch.seed()
     random_x = draw_random_batch(n_samples=N_INIT_SAMPLES)
     for i,metric in enumerate(METRICS):
-        proximities[i,j,:] = run(metric, xt).squeeze()
-        print('Repeat %d\tMetric : %s\tFinal distance: %.2f'%(j,metric,proximities[i,j,:][-1]))
+        proximities[i,j,:] = run(metric, xt, random_x).squeeze()
+        print('Repeat %d\tMetric : %s\tInitial distance : %.2f\tFinal distance: %.2f'%(j,metric,
+            proximities[i,j,:][0],proximities[i,j,:][-1]))
 np.save('proximities.npy', proximities)   
 
 fig, axs = plt.subplots(1,len(METRICS), figsize=(4*len(METRICS), 4), sharey=True, sharex=True) 
-labels = [r'$\mathbb{R}^n$', r'$\mathbb{L}_{2}$', 'SRVF', 'Amplitude-Phase']    
+labels = [r'$\mathbb{R}^n$', 'Amplitude-Phase']    
 for i,_ in enumerate(METRICS):
     ax = axs[i]
     y_mean = proximities.mean(axis=1)[i,...]
@@ -233,8 +251,8 @@ for i,_ in enumerate(METRICS):
     ax.set_title(labels[i])
     ax.axhline(0, ls='--', lw='2.0', c='k')  
 
-axs[0].set_ylabel(r'$||x-x_{t}||_{2}$')
-fig.supxlabel('Batch number', y=-0.05)
+axs[0].set_ylabel(r'$||x^{*}_{b}-x_{t}||_{2}$')
+fig.supxlabel('Batch number (b)', y=-0.05)
 plt.savefig('metric_compare.png')
 plt.show()
 

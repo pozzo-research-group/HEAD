@@ -313,7 +313,7 @@ class EmulatorSingleParticle:
         n1, n2 = 1.33, 1.33
         dyads = propagators.DyadsQuasistatic123(n1=n1, n2=n2)
 
-        struct = structures.struct(step, geometry, material)
+        struct = structures.struct(step, geometry, material, verbose=0)
         sim = core.simulation(struct, efield, dyads)
         
         t0 = time.time()
