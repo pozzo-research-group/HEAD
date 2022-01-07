@@ -7,7 +7,7 @@ from sklearn.preprocessing import MinMaxScaler
 
 class Euclidean:
     def __init__(self, points):
-        """Euclidean space in d dimensions (```\mathbb{R}^d```)
+        r"""Euclidean space in d dimensions (```\mathbb{R}^d```)
         
         points = np.random.rand(10,3)
         Rd = Euclidean(points)
@@ -52,7 +52,7 @@ class Euclidean:
 
 class Grid(Euclidean):
     def __init__(self, *x):
-        """Euclidean space in d dimensions (```\mathbb{R}^d```)
+        r"""Euclidean space in d dimensions (```\mathbb{R}^d```)
         
         X = np.linspace(1,2, num=10) 
         Y = np.linspace(1,2, num=10)

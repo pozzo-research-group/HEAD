@@ -25,12 +25,41 @@ tkwargs = {
 
  
 class Optimizer:
+    """Bayesian optimizer for spectral data 
     
-    def __init__(self, xt, yt, bounds, savedir='../', batch_size=8, hyperplane=False):
+    This class is used to perform Bayesian optimization for target spectra 
+    using the opentrons robot
+    
+    Params:
+    -------
+        xt          :   Target spectra of domain (n_samples, )
+        yt          :   Target spectra of shape (n_samples, )
+        bounds      :   Bounds for the design space (list of the length n_dim)   
+        
+        savedir     :   Directory location to save output from the Optimizer 
+                        (default, '../')
+        batch_size  :   Batch size used for optimization (default, 8)
+        hyperplane  :   Boolean variable to specify whether the desgin space 
+                        is a hyperplane (default, False)
+        metric      :   Distance measure used to compute similarity 
+                        beteween spectra (default, Euclidean)
+                        This is a function that should take two spectra 
+                        of shape (n_samples, ) and return a scalar as a float
+    """
+    
+    def __init__(self, xt, yt, bounds, 
+        savedir='../', 
+        batch_size=8, 
+        hyperplane=False,
+        metric = None
+        ):
+
         self.xt = xt 
         self.yt = yt
         self.bounds = torch.tensor(bounds).T.to(**tkwargs)
         self.hyperplane = hyperplane
+        self.metric_function = metric
+        self.Rn = Euclidean(len(self.xt)) 
         
         if self.hyperplane:
             indices = torch.arange(self.bounds.shape[0], dtype=torch.long, device=tkwargs['device'])
@@ -39,7 +68,6 @@ class Optimizer:
         else:
             self.constraints = None
         
-        self.Rn = Euclidean(len(self.xt)) 
         self.savedir = savedir
         if not os.path.exists(self.savedir):
             os.makedirs(self.savedir)
@@ -52,9 +80,13 @@ class Optimizer:
         self.iteration = 0
         self.suggest_next()
         self.new_obj = torch.tensor([]).to(**tkwargs)
+        self.best_loc = []
 
     def metric(self, yi):
-        return -float(self.Rn.metric.dist(yi, self.yt))
+        if self.metric_function is None:
+            return -float(self.Rn.metric.dist(yi, self.yt))
+        else:
+            return self.metric_function(yi[0], self.yt)
     
     def draw_random_batch(self,n_samples):
         random_x = draw_sobol_samples(
@@ -63,11 +95,11 @@ class Optimizer:
         
         return random_x
         
-    def selector(self,acquisition):
+    def selector(self,acquisition,q):
         new_x, _ = optimize_acqf(
             acq_function=acquisition,
             bounds=self.bounds,
-            q=self.batch_size,
+            q=q,
             num_restarts=64,
             raw_samples=1024, 
             sequential=False,
@@ -94,7 +126,7 @@ class Optimizer:
             self.best_f = self.train_obj.max(axis=0).values
             self.acquisition = qExpectedImprovement(self.model, best_f = self.best_f)
             # optimize acquisition functions and get new observations
-            self.new_x = self.selector(self.acquisition)
+            self.new_x = self.selector(self.acquisition,q=self.batch_size)
         self.iteration += 1
             
         return self.new_x
@@ -118,7 +150,7 @@ class Optimizer:
         return torch.tensor([dist])
     
     def evaluate_batch(self, xb, yb):
-        logging.info('Current experiment id : %d'%self.expt_id)
+        logging.debug('Current experiment id : %d'%self.expt_id)
         out = []
         for yi in zip(yb):
             out.append(self.evaluate(xb,yi))
@@ -127,24 +159,33 @@ class Optimizer:
         return torch.stack(out, dim=0).to(**tkwargs)
 
     def update(self, xlsx, read_spectra=None):
+        # re-initialize
         if read_spectra is None:
             self.wavelengths, self.spectra = self.read_spectra(xlsx)
         else:
             self.wavelengths, self.spectra = read_spectra(xlsx)
         self.new_obj = self.evaluate_batch(self.wavelengths, self.spectra)
-        logging.info('Iteration : %d'%(self.iteration))
         
         for i in range(self.batch_size):
-            logging.info('%d\t%s\t%s'%(i, self.new_x[i,...].numpy(), 
+            logging.debug('%d\t%s\t%s'%(i, self.new_x[i,...].numpy(), 
                                 self.new_obj[i,...].numpy()))
 
         # update training points
         self.train_x = torch.cat([self.train_x, self.new_x])
         self.train_obj = torch.cat([self.train_obj, self.new_obj])
-        # re-initialize
         self.initialize_model()
-        
+
         return 
+        
+    def get_current_best(self):
+        # obtain the current best from the model using posterior
+        opt_x = self.selector(PosteriorMean(self.model), q=1)
+        with torch.no_grad():
+            posterior = self.model.posterior(torch.tensor(opt_x).to(**tkwargs))
+            posterior_mean = posterior.mean.cpu().numpy()
+        self.best_loc.append(opt_x)
+        logging.info('Iteration : %d Best estimate %s with predicted score : %s'%(self.iteration, 
+            opt_x.numpy(), posterior_mean))
         
     def save(self):
         idir = self.savedir + '/%d'%(self.iteration-1)
@@ -153,7 +194,7 @@ class Optimizer:
         else:
             shutil.rmtree(idir)
             os.makedirs(idir)
-            logging.info('Iteriation %d has an existing directory in %s'%(self.iteration-1, idir))
+            logging.debug('Iteriation %d has an existing directory in %s'%(self.iteration-1, idir))
         
         np.save(idir+'/new_x.npy',self.new_x.numpy())
         np.save(idir+'/new_obj.npy',self.new_obj.numpy())
