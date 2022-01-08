@@ -24,6 +24,17 @@ tkwargs = {
 }
 
  
+class InputTransform:
+    def __init__(self, bounds):
+        self.min = bounds.min(axis=0).values
+        self.range = bounds.max(axis=0).values-self.min
+        
+    def transform(self, x):
+        return (x-self.min)/self.range
+    
+    def inverse(self, xt):
+        return (self.range*xt)+self.min
+ 
 class Optimizer:
     """Bayesian optimizer for spectral data 
     
@@ -56,7 +67,11 @@ class Optimizer:
 
         self.xt = xt 
         self.yt = yt
-        self.bounds = torch.tensor(bounds).T.to(**tkwargs)
+        
+        bounds_params = torch.tensor(bounds).T.to(**tkwargs)
+        self.inp = InputTransform(bounds_params)
+        self.bounds = torch.tensor(([[1e-3,1] for _ in range(len(bounds))])).T.to(**tkwargs)
+        
         self.hyperplane = hyperplane
         self.metric_function = metric
         self.Rn = Euclidean(len(self.xt)) 
@@ -122,13 +137,20 @@ class Optimizer:
         if self.iteration==0:
             self.new_x = self.draw_random_batch(n_samples=self.batch_size)
         else:
-            fit_gpytorch_model(self.mll)
             self.best_f = self.train_obj.max(axis=0).values
             self.acquisition = qExpectedImprovement(self.model, best_f = self.best_f)
             # optimize acquisition functions and get new observations
             self.new_x = self.selector(self.acquisition,q=self.batch_size)
+        
+        self.new_x_compspace = self.inp.inverse(self.new_x)
+        logging.info('Iteration : %d, Samples to be made'%self.iteration)
+        for i in range(self.batch_size):
+            logging.info('%d\t%s'%(i, self.new_x_compspace[i,...].numpy()))
+        
+        logging.info('='*30)        
+        
         self.iteration += 1
-            
+        
         return self.new_x
         
     def read_spectra(self,xlsx):
@@ -165,7 +187,7 @@ class Optimizer:
         else:
             self.wavelengths, self.spectra = read_spectra(xlsx)
         self.new_obj = self.evaluate_batch(self.wavelengths, self.spectra)
-        
+
         for i in range(self.batch_size):
             logging.debug('%d\t%s\t%s'%(i, self.new_x[i,...].numpy(), 
                                 self.new_obj[i,...].numpy()))
@@ -174,6 +196,7 @@ class Optimizer:
         self.train_x = torch.cat([self.train_x, self.new_x])
         self.train_obj = torch.cat([self.train_obj, self.new_obj])
         self.initialize_model()
+        fit_gpytorch_model(self.mll)
 
         return 
         
@@ -183,9 +206,10 @@ class Optimizer:
         with torch.no_grad():
             posterior = self.model.posterior(torch.tensor(opt_x).to(**tkwargs))
             posterior_mean = posterior.mean.cpu().numpy()
-        self.best_loc.append(opt_x)
+        opt_x_compspace = self.inp.inverse(opt_x)
+        self.best_loc.append(opt_x_compspace)
         logging.info('Iteration : %d Best estimate %s with predicted score : %s'%(self.iteration, 
-            opt_x.numpy(), posterior_mean))
+            opt_x_compspace.numpy(), posterior_mean))
         
     def save(self):
         idir = self.savedir + '/%d'%(self.iteration-1)
@@ -195,8 +219,8 @@ class Optimizer:
             shutil.rmtree(idir)
             os.makedirs(idir)
             logging.debug('Iteriation %d has an existing directory in %s'%(self.iteration-1, idir))
-        
-        np.save(idir+'/new_x.npy',self.new_x.numpy())
+            
+        np.save(idir+'/new_x.npy',self.new_x_compspace.numpy())
         np.save(idir+'/new_obj.npy',self.new_obj.numpy())
         np.save(idir+'/train_x.npy',self.train_x.numpy())
         np.save(idir+'/train_obj.npy',self.train_obj.numpy())
