@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
-
+import warnings
+warnings.filterwarnings("ignore")
 import os, shutil
 import torch
 import time
@@ -44,8 +45,7 @@ from geomstats.geometry.hyperboloid import Hyperboloid
 
 import fdasrsf as fs
 
-import warnings
-warnings.filterwarnings("ignore")
+
 
 N_SAMPLES = 100
 BATCH_SIZE = 4
@@ -223,10 +223,9 @@ def run(metric, xt, random_x):
         
     expt = oracle.expt
     best_loc = torch.cat(best_loc).numpy()
-        
     proximities = distance.cdist(best_loc, xt)
     
-    return proximities
+    return proximities, opt_x
   
 # Perform the experiment
 METRICS = ['Rn','ap']  
@@ -235,9 +234,10 @@ for j in range(N_REPEAT):
     torch.seed()
     random_x = draw_random_batch(n_samples=N_INIT_SAMPLES)
     for i,metric in enumerate(METRICS):
-        proximities[i,j,:] = run(metric, xt, random_x).squeeze()
+        proximity, opt_x = run(metric, xt, random_x)
+        proximities[i,j,:] = proximity.squeeze()
         print('Repeat %d\tMetric : %s\tInitial distance : %.2f\tFinal distance: %.2f'%(j,metric,
-            proximities[i,j,:][0],proximities[i,j,:][-1]))
+            proximities[i,j,:][0],proximities[i,j,:][-1]),'\tBest estimate : ',inp.inverse(opt_x).numpy())
 np.save('proximities.npy', proximities)   
 
 fig, axs = plt.subplots(1,len(METRICS), figsize=(4*len(METRICS), 4), sharey=True, sharex=True) 
