@@ -135,4 +135,3 @@ figures/*.png
 expts/
 ext/
 *.png
-notebooks/*
