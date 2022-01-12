@@ -6,5 +6,5 @@ mkdir ext
 git clone https://github.com/pytorch/botorch.git
 pip install ./botorch
 pip install ipykernel
-python3 -m ipykernel install --user --name head --display-name "head"
+python3 -m ipykernel install --user --name shapematching --display-name "shapematching"
 

@@ -151,7 +151,7 @@ class Optimizer:
         
         self.iteration += 1
         
-        return self.new_x
+        return self.new_x_compspace
         
     def read_spectra(self,xlsx):
         xlsx = pd.read_excel(xlsx, index_col=0, engine='openpyxl')
