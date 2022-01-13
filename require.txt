@@ -8,3 +8,4 @@ botorch
 openpyxl
 sasmodels
 geomstats
+fdasrsf
