@@ -1,13 +1,19 @@
 # Bayesian Optimization branch for HEAD
 This branch contains code for the Bayesian Optimization part.
 
-We recommend installing the package in a editable format using the `install.sh` file in a Linux command line or using the instructions with-in the `install.sh` in a python command line.
+We recommend installing the package by following the instructions below.
 
-In a Linux command shell
+In a Linux command shell with a anaconda installation of python,
 ```bash
-chmod u+x install.sh 
-./install.sh
+conda create --name shapematching python=3.7
+conda install pip
+conda install -c conda-forge fdasrsf
+git clone -b BO https://github.com/pozzo-research-group/HEAD.git
+pip install -r require.txt
+pip install -e ./HEAD
 ```
+The above installation looks slightly uncommon but this is a working solutions. 
+Installation of the package `fdasrsf_python` using pip is broken.
 
 ## Example using the Gaussian function simulator can be performed as follows:
 
