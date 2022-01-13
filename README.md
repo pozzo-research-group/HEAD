@@ -67,20 +67,12 @@ bounds = [Cmu, Csig]
 
 Define a distance metric function
 ```python
-import fdasrsf as fs
+from head import AmplitudePhaseDistance
 
-def APdist(point_a, point_b, time):
-    curves = np.zeros((len(point_a), 2))
-    curves[...,0] = point_a
-    curves[...,1] = point_b
-    obj = fs.fdawarp(curves, time)
-    obj.srsf_align(parallel=True, MaxItr=50)
-    dp = fs.efda_distance_phase(obj.qn[...,0], obj.qn[...,1])
-    da = fs.efda_distance(obj.qn[...,0], obj.qn[...,1])
-
+def APdist(f1,f2):
+    da, dp = AmplitudePhaseDistance(f1,f2,xt)
+    
     return -(da+dp)
-
-metric_function = lambda f1,f2 : APdist(f1,f2,xt)
 ```
 
 
