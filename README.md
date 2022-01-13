@@ -15,6 +15,11 @@ pip install -e ./HEAD
 The above installation looks slightly uncommon but this is a working solutions. 
 Installation of the package `fdasrsf_python` using pip is broken.
 
+Additionally, to run casestudies for the paper, install geomstats package using the following:
+```bash
+pip install git+https://github.com/kiranvad/geomstats.git@shapematching_paper
+```
+
 ## Example using the Gaussian function simulator can be performed as follows:
 
 Import the required function using the below code snippet:
