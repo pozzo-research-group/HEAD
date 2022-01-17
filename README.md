@@ -9,8 +9,9 @@ conda create --name shapematching python=3.7
 conda install pip
 conda install -c conda-forge fdasrsf
 git clone -b BO https://github.com/pozzo-research-group/HEAD.git
+cd HEAD
 pip install -r require.txt
-pip install -e ./HEAD
+pip install -e .
 ```
 The above installation looks slightly uncommon but this is a working solutions. 
 Installation of the package `fdasrsf_python` using pip is broken.
