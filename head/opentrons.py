@@ -22,7 +22,7 @@ tkwargs = {
     "dtype": torch.double,
     "device": torch.device("cuda" if torch.cuda.is_available() else "cpu"),
 }
-
+logging.basicConfig(level=logging.DEBUG)
  
 class InputTransform:
     def __init__(self, bounds):
@@ -68,7 +68,8 @@ class Optimizer:
         savedir='../', 
         batch_size=8, 
         hyperplane=False,
-        metric = None
+        metric = None,
+        verbose = False
         ):
 
         self.xt = xt 
@@ -83,7 +84,8 @@ class Optimizer:
         self.Rn = Euclidean(len(self.xt)) 
         
         if self.hyperplane:
-            indices = torch.arange(self.bounds.shape[0], dtype=torch.long, device=tkwargs['device'])
+            indices = torch.arange(self.bounds.shape[0], dtype=torch.long, 
+                device=tkwargs['device'])
             coeffs = torch.ones(self.bounds.shape[0]).to(**tkwargs)
             self.constraints = [(indices, coeffs, 1.0)]
         else:
@@ -102,6 +104,8 @@ class Optimizer:
         self.suggest_next()
         self.new_obj = torch.tensor([]).to(**tkwargs)
         self.best_loc = []
+        
+        self.verbose = verbose
 
     def metric(self, yi):
         if self.metric_function is None:
@@ -130,11 +134,11 @@ class Optimizer:
         return new_x
         
     def initialize_model(self):
-        self.model = SingleTaskGP(self.train_x, self.train_obj, 
+        model = SingleTaskGP(self.train_x, self.train_obj, 
             outcome_transform=Standardize(m=self.train_obj.shape[-1]))
-        self.mll = ExactMarginalLogLikelihood(self.model.likelihood, self.model)
+        mll = ExactMarginalLogLikelihood(model.likelihood, model)
         
-        return
+        return model, mll
         
         
     def suggest_next(self):
@@ -143,8 +147,7 @@ class Optimizer:
         if self.iteration==0:
             self.new_x = self.draw_random_batch(n_samples=self.batch_size)
         else:
-            self.best_f = self.train_obj.max(axis=0).values
-            self.acquisition = qExpectedImprovement(self.model, best_f = self.best_f)
+            self.acquisition = qExpectedImprovement(self.model, best_f = 0.0)
             # optimize acquisition functions and get new observations
             self.new_x = self.selector(self.acquisition,q=self.batch_size)
         
@@ -168,6 +171,7 @@ class Optimizer:
 
     def evaluate(self, xi, yi):
         """Scoring function at a given input location
+        
         Uses the simulator sim to generate response spectra at a given locations
         and return a similarity score to target spectra
         """
@@ -193,16 +197,27 @@ class Optimizer:
         else:
             self.wavelengths, self.spectra = read_spectra(xlsx)
         self.new_obj = self.evaluate_batch(self.wavelengths, self.spectra)
-
-        for i in range(self.batch_size):
-            logging.debug('%d\t%s\t%s'%(i, self.new_x[i,...].numpy(), 
-                                self.new_obj[i,...].numpy()))
+        
+        if self.verbose:
+            for i in range(self.batch_size):
+                logging.info('%d\t%s\t%s'%(i, self.new_x[i,...].numpy(), 
+                                    self.new_obj[i,...].numpy()))
 
         # update training points
         self.train_x = torch.cat([self.train_x, self.new_x])
         self.train_obj = torch.cat([self.train_obj, self.new_obj])
-        self.initialize_model()
-        fit_gpytorch_model(self.mll)
+        
+        # fit the surrogate GP model
+        model, mll = self.initialize_model()
+        fit_gpytorch_model(mll)
+        if self.verbose:
+            logging.info('Output scale : %2.4f'%model.covar_module.outputscale.data)
+            logging.info('Likelihood noise : %2.4f'%model.likelihood.noise_covar.noise.item())
+            logging.info('Constant mean : %2.4f'%model.mean_module.constant.item())
+            len_scales = model.covar_module.base_kernel.lengthscale.data
+            logging.info('Output length scale Matern : %s'%','.join('%.2f'%i for i in len_scales.squeeze()))
+        self.model = model
+        self.mll = mll
 
         return 
         
