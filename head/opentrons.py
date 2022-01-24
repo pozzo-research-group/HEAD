@@ -43,17 +43,23 @@ class Optimizer:
     
     Params:
     -------
-        xt          :   Target spectra of domain (n_samples, )
-        yt          :   Target spectra of shape (n_samples, )
-        bounds      :   Bounds for the design space (list of the length n_dim)   
+        xt          :   Target spectra of domain 
+                        (n_samples, )
+        yt          :   Target spectra of shape 
+                        (n_samples, )
+        bounds      :   Bounds for the design space 
+                        (list of the length n_dim)   
         
         savedir     :   Directory location to save output from the Optimizer 
                         (default, '../')
-        batch_size  :   Batch size used for optimization (default, 8)
+        batch_size  :   Batch size used for optimization 
+                        (default, 8)
         hyperplane  :   Boolean variable to specify whether the desgin space 
-                        is a hyperplane (default, False)
+                        is a hyperplane 
+                        (default, False)
         metric      :   Distance measure used to compute similarity 
-                        beteween spectra (default, Euclidean)
+                        beteween spectra 
+                        (default, Euclidean)
                         This is a function that should take two spectra 
                         of shape (n_samples, ) and return a scalar as a float
     """
