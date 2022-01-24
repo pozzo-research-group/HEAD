@@ -202,9 +202,10 @@ def run(metric, xt, random_x):
         
     expt = oracle.expt
     best_loc = torch.cat(best_loc).numpy()
-    # best_loc_orig = inp.inverse(best_loc).numpy()
-    # xt_orig = inp.inverse(xt).numpy()
+    best_loc_orig = inp.inverse(best_loc).numpy()
+    xt_orig = inp.inverse(xt).numpy()
     # proximities = fisher_metric.dist(best_loc_orig,xt_orig)
+    # proximities = distance.cdist(best_loc_orig, xt_orig)
     proximities = distance.cdist(best_loc, xt)
     
     return proximities, opt_x
