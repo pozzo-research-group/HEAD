@@ -20,7 +20,7 @@ Additionally, to run casestudies for the paper, install geomstats package using 
 ```bash
 pip install git+https://github.com/kiranvad/geomstats.git@shapematching_paper
 ```
-
+We will include experimental datasets into the paper folder.
 ## Example using the Gaussian function simulator can be performed as follows:
 
 Import the required function using the below code snippet:
