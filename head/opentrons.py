@@ -115,7 +115,7 @@ class Optimizer:
     
     def draw_random_batch(self,n_samples):
         random_x = draw_sobol_samples(
-            bounds=self.bounds,n=1, q=n_samples
+            bounds=self.bounds,n=1, q=n_samples, seed = 400
         ).squeeze(0)
         
         return random_x
@@ -231,6 +231,7 @@ class Optimizer:
         self.best_loc.append(opt_x_compspace)
         logging.info('Iteration : %d Best estimate %s with predicted score : %s'%(self.iteration, 
             opt_x_compspace.numpy(), posterior_mean))
+        self.best_estimate = opt_x_compspace.numpy()
         
     def save(self):
         idir = self.savedir + '/%d'%(self.iteration-1)
@@ -245,7 +246,6 @@ class Optimizer:
         np.save(idir+'/new_obj.npy',self.new_obj.numpy())
         np.save(idir+'/train_x.npy',self.train_x.numpy())
         np.save(idir+'/train_obj.npy',self.train_obj.numpy())
-
         with open(idir + '/storage.pkl', 'wb') as handle:
             pickle.dump(self.expt, handle, protocol=pickle.HIGHEST_PROTOCOL)
         if hasattr(self, 'model'):
@@ -254,6 +254,11 @@ class Optimizer:
             torch.save(self.model.state_dict(), idir+'/model.pth')
 
         return 
+
+    def save_best_estimate(self):
+        idir = self.savedir + '/%d'%(self.iteration-1)
+        np.save(idir+'/best_estimate.npy',self.best_estimate)
+
         
         
         
