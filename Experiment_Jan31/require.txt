@@ -1,8 +1,0 @@
-matplotlib
-numpy
-pandas
-scikit-learn
-scipy
-botorch
-openpyxl
-geomstats
