@@ -120,7 +120,7 @@ def AmplitudePhaseDistance(point_a, point_b, time):
     curves[...,0] = point_a
     curves[...,1] = point_b
     obj = fdawarp(curves, time)
-    obj.srsf_align(parallel=True, MaxItr=50)
+    obj.srsf_align(parallel=False, MaxItr=50)
     dp = _phase_distance(obj.qn[...,0], obj.qn[...,1])
     da = _amplitude_distance(obj.qn[...,0], obj.qn[...,1])
 
