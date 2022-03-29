@@ -6,6 +6,7 @@ We recommend installing the package by following the instructions below.
 In a Linux command shell with a anaconda installation of python,
 ```bash
 conda create --name shapematching python=3.7
+conda activate shapematching
 conda install pip
 conda install -c conda-forge fdasrsf
 git clone -b BO https://github.com/pozzo-research-group/HEAD.git
