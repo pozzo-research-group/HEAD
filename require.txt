@@ -5,4 +5,3 @@ scikit-learn
 scipy
 botorch
 openpyxl
-geomstats
