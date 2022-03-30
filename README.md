@@ -19,7 +19,9 @@ Installation of the package `fdasrsf_python` using pip is broken.
 
 Additionally, to run casestudies for the paper, install geomstats package using the following:
 ```bash
-pip install git+https://github.com/kiranvad/geomstats.git@shapematching_paper
+git clone -b shapematching_paper https://github.com/kiranvad/geomstats.git
+cd geomstats
+pip install .
 ```
 
 ## Example using the Gaussian function simulator can be performed as follows:
