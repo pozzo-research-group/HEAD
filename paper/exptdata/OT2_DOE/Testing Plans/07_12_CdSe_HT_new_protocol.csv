@@ -1,0 +1,26 @@
+Sample Amount,1.5
+Sample Unit,"""mL"""
+Component Shorthand Names,"['OleicAc' , 'Oleylamine', 'CdAc', 'Se']"
+Component Concentration Units,"['molarity', 'molarity', 'molarity', 'molarity']"
+"Component Concentration Linspaces [min, max, n]","[ [0,0.5,3], [0,0.5,3],[0, 0.1,3], [0,0.1,3]]"
+Stock Names,"[ 'OleicAc-stock', 'Oleylamine-stock','CdAc-TOP-stock', 'Se-TOP-stock']"
+Stock Concentration Units,"[ 'volf', 'volf','molarity', 'molarity']"
+Stock Concentrations,"[1, 1,0.5, 1]"
+OT2 Destination Labwares,"[""abgene_96_wellplate_2200ul""]"
+OT2 Destination Labware Slots,[2]
+OT2 Stock Labwares,"[""20mlscintillation_12_wellplate_18000ul""]"
+OT2 Stock Labware Slots,[1]
+OT2 Left Pipette,"""p300_single_gen2"""
+OT2 Left Pipette Aspiration Rate (uL/sec),50
+OT2 Left Pipette Dispense Rate (uL/sec),300
+OT2 Left Tipracks,"[""opentrons_96_tiprack_300ul""]"
+OT2 Left Tiprack Slots,[10]
+OT2 Right Pipette,"""p1000_single"""
+OT2 Right Pipette Aspiration Rate (uL/sec),500
+OT2 Right Pipette Dispense Rate (uL/sec),1000
+OT2 Right Tipracks,"[""opentrons_96_tiprack_1000ul""]"
+OT2 Right Tiprack Slots,[11]
+OT2 Bottom Dispensing Clearance (mm),55
+OT2 Bottom Asipiration Clearence (mm) - In progress,None
+OT2 Bottom Dispensing Clearance (mm) - In progress,None
+OT2 Air Gap - In progress,None
