@@ -21,17 +21,17 @@ import matplotlib.pyplot as plt
 plt.rcParams.update({"text.usetex": True,
                      "axes.spines.right" : False,
                      "axes.spines.top" : False,
-                     "font.size": 15,
-                     "savefig.dpi": 400,
+                     "font.size": 20,
+                     "savefig.dpi": 500,
                      "savefig.bbox": 'tight',
-                     'text.latex.preamble': r'\usepackage{amsfonts}'
+                     'text.latex.preamble': r'\usepackage{amsfonts}\usepackage[version=4]{mhchem}'
                     }
                    )
 
 
 from scipy.spatial import distance
 
-from head import AmplitudePhaseDistance
+from head.distances import AmplitudePhaseDistance
 
 from botorch.models.gp_regression import SingleTaskGP
 from botorch.models.transforms.outcome import Standardize
@@ -239,6 +239,6 @@ for i,_ in enumerate(METRICS):
 
 axs[0].set_ylabel(r'$||x^{*}_{b}-x_{t}||_{2}$')
 fig.supxlabel('Batch number (b)', y=-0.05)
-plt.savefig('../figures/metric_compare.png')
+plt.savefig('../figures/metric_compare.pdf')
 plt.show()
 
