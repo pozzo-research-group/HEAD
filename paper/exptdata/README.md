@@ -49,7 +49,7 @@ In each folder there are subfolders labeled with numbers. These folders contain 
 - best_estimate.npy: a 1-D numpy array of the volumes that will generate the closest spectra to the target according to the  Bayesian Optimization's surrogate
 - model.pth: file containing information on the surrogate model 
 - new_obj.npy: a 1-D numpy array of the scores given by the similarity metric of the samples from the previous iteration
-- new_x.npy: a 2-D numpy array of the volumes suggested by the algorithm for the next iteration 
+- new_x.npy: a 2-D numpy array of the volumes suggested by the algorithm for the current iteration 
 - spectra.npy: a 2-D numpy array of the spectra that was generated from the volumes from the previous iteration 
 - storage.pkl: file containing information on the surrogate model 
 - train_obj.npy: a 1-D numpy array of the scores given by the similarity metric of each sample 
