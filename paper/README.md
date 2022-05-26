@@ -13,3 +13,11 @@ The python file `gaussians.py` contains code to re-produce case study 1 from the
 Data from the experimental campaigns are provided in the folder `expt`. This data was generated in the exact same way as described in the repo README.md for a simulation case study adapted for experiments with a robot in the loop.
  
 Code required to reproduce Figure 5, 6 are provided in the `02-expt_postprocess.ipynb` that makes use of the data in the `expt` folder.
+
+4. MSE vs Amplitude Phase comparision
+
+Code required to reproduce Figure 3 from the paper is provided in `mse_vs_ap.py`
+
+5. Grid sampling phase diagram
+
+Code required to reproduce Figure 7 from the paper is provided in `03-plot_phase_diagram.ipynb`
