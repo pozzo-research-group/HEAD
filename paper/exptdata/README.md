@@ -2,7 +2,7 @@
 ## Data Folders (e.g., data_AP_Hard)
 
 The folders contain the experimental files from the optimization campaigns. 
-Readers can find synthesis procedure used in this study (using a liquid handling robot) in the `synthesis` section of the [Electronic Supplementary Informatio]() of the accompanying paper.
+Readers can find synthesis procedure used in this study (using a liquid handling robot) in the `synthesis` section of the [Electronic Supplementary Information]() of the accompanying paper.
 They are structured with 'data' + metric_name + target_difficulty where 'metric_name' refers to:
 
 - peakwv: the metric that compares the wavelengths of the peaks
