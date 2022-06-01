@@ -2,7 +2,7 @@
 ## Data Folders (e.g., data_AP_Hard)
 
 The folders contain the experimental files from the optimization campaigns. 
-Readers can find synthesis procedure used in this study (using a liquid handling robot) in the `synthesis` section of the [Electronic Supplementary Informatio]().
+Readers can find synthesis procedure used in this study (using a liquid handling robot) in the `synthesis` section of the [Electronic Supplementary Informatio]() of the accompanying paper.
 They are structured with 'data' + metric_name + target_difficulty where 'metric_name' refers to:
 
 - peakwv: the metric that compares the wavelengths of the peaks
@@ -26,7 +26,9 @@ In addition to the numbered excel files, there are also files containing 'Best_E
 
 ### Numbered Subfolder Contents (e.g., 1, 2) 
 
-In each folder there are subfolders labeled with numbers. These folders contain information from the bayesian optimization at each iteration. The volumes used to create the samples are included in this folder. The contents of the folder are:
+In each folder there are subfolders labeled with numbers. These folders contain information from the bayesian optimization at each iteration. 
+
+The volumes of different components (in microliteres) used to create the samples (total volume of 350 uL each in the well plate)  are included in this folder. The contents of the folder are:
 
 - best_estimate.npy: a 1-D numpy array of the volumes that will generate the closest spectra to the target according to the  Bayesian Optimization's surrogate
 - model.pth: file containing information on the surrogate model 
