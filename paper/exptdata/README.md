@@ -30,7 +30,7 @@ In addition to the numbered excel files, there are also files containing 'Best_E
 
 In each folder there are subfolders labeled with numbers. These folders contain information from the bayesian optimization at each iteration. 
 
-The volumes of different components (in microliteres) used to create the samples (total volume of 350 uL each in the well plate)  are included in this folder. The contents of the folder are:
+The volumes of different components (in microliters) used to create the samples (total volume of 350 uL each in the well plate)  are included in this folder. The contents of the folder are:
 
 - best_estimate.npy: a 1-D numpy array of the volumes (in microliters) that will generate the closest spectra to the target according to the  Bayesian Optimization's surrogate
 - model.pth: file containing information on the surrogate model 
