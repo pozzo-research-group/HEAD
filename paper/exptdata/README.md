@@ -1,4 +1,6 @@
 
+Information on the synthesis procedures can be found in the supplementary information section of our paper. 
+
 ## Data Folders (e.g., data_AP_Hard)
 
 The folders contain the experimental files from the optimization campaigns. They are structured with 'data' + metric_name + target_difficulty where 'metric_name' refers to:
