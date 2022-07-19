@@ -129,7 +129,7 @@ dmypy.json
 .pyre/
 
 # Untracked folders/files
-data/2021_June_USAXS
+data/
 figures/
 figures/*.png
 expts/
