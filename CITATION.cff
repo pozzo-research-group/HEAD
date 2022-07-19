@@ -28,6 +28,6 @@ preferred-citation:
     orcid: "https://orcid.org/0000-0001-7104-9061" 
   doi: "10.1039/d2dd00025c"
   journal: "Digital Discovery"
-  publisher = "Royal Society of Chemistry (RSC)"
+  publisher: "Royal Society of Chemistry (RSC)"
   title: "Autonomous retrosynthesis of gold nanoparticles via spectral shape matching"
   year: 2022
