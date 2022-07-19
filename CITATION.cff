@@ -1,0 +1,33 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Vaddi"
+  given-names: "Kiran"
+  orcid: "https://orcid.org/0000-0003-2998-769X"
+- family-names: "Thart Chiang"
+  given-names: "Huat"
+  orcid: "https://orcid.org/0000-0002-0042-7958"
+- family-names: "D. Pozzo"
+  given-names: "Lilo"
+  orcid: "https://orcid.org/0000-0001-7104-9061"  
+title: "Autonomous retrosynthesis of gold nanoparticles via spectral shape matching"
+version: 1.0
+date-released: 2022-07-19
+url: "https://github.com/pozzo-research-group/HEAD/tree/BO"
+preferred-citation:
+  type: article
+  authors:
+  - family-names: "Vaddi"
+    given-names: "Kiran"
+    orcid: "https://orcid.org/0000-0003-2998-769X"
+  - family-names: "Thart Chiang"
+    given-names: "Huat"
+    orcid: "https://orcid.org/0000-0002-0042-7958"
+  - family-names: "D. Pozzo"
+    given-names: "Lilo"
+    orcid: "https://orcid.org/0000-0001-7104-9061" 
+  doi: "10.1039/d2dd00025c"
+  journal: "Digital Discovery"
+  publisher = "Royal Society of Chemistry (RSC)"
+  title: "Autonomous retrosynthesis of gold nanoparticles via spectral shape matching"
+  year: 2022
