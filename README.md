@@ -3,21 +3,31 @@ This branch contains code for the Bayesian Optimization part.
 
 We recommend installing the package by following the instructions below.
 
-In a Linux command shell with a anaconda installation of python,
+In a Linux command shell with Anaconda installation of Python,
 ```bash
-conda create --name shapematching python=3.7
-conda activate shapematching
-conda install pip
-conda install -c conda-forge fdasrsf
+conda env create -f environment.yml
+```
+Now install the packges required to compute the Amplitude-Phase distance using : 
+
+```bash
+pip install git+https://github.com/kiranvad/Amplitude-Phase-Distance.git    
+```
+
+and then : 
+```bash
+pip install git+https://github.com/kiranvad/warping.git    
+```
+
+Install the head package using the following : 
+```bash
 git clone -b BO https://github.com/pozzo-research-group/HEAD.git
 cd HEAD
-pip install -r require.txt
 pip install -e .
 ```
-The above installation looks slightly uncommon but this is a working solutions. 
-Installation of the package `fdasrsf_python` using pip is broken.
 
-Additionally, to run casestudies for the paper, install geomstats package using the following:
+
+
+Additionally, to run case studies for the paper, install the `geomstats` package using the following:
 ```bash
 git clone -b shapematching_paper https://github.com/kiranvad/geomstats.git
 cd geomstats
@@ -60,7 +70,7 @@ class Simulator:
         return self.domain, self.generate(*ct)
 
 ```
-The simulator simply returns a Gaussian distribution function given a `mu` and `sigma` values. We use this to specify a target distribution:
+The simulator simply returns a Gaussian distribution function given `mu` and `sigma` values. We use this to specify a target distribution:
 ```python
 sim = Simulator()
 target = np.array([-2,0.5])
@@ -76,7 +86,7 @@ bounds = [Cmu, Csig]
 
 Define a distance metric function
 ```python
-from head import AmplitudePhaseDistance
+from apdist import AmplitudePhaseDistance
 
 def APdist(f1,f2):
     da, dp = AmplitudePhaseDistance(f1,f2,xt)
