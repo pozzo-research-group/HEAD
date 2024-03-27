@@ -7,7 +7,7 @@ In a Linux command shell with Anaconda installation of Python,
 ```bash
 conda env create -f environment.yml
 ```
-Now install the packges required to compute the Amplitude-Phase distance using : 
+Now install the packages required to compute the Amplitude-Phase distance using : 
 
 ```bash
 pip install git+https://github.com/kiranvad/Amplitude-Phase-Distance.git    
@@ -24,8 +24,6 @@ git clone -b BO https://github.com/pozzo-research-group/HEAD.git
 cd HEAD
 pip install -e .
 ```
-
-
 
 Additionally, to run case studies for the paper, install the `geomstats` package using the following:
 ```bash
@@ -132,8 +130,8 @@ for i in range(1,21):
 
 ```
 
-Note that when a robotic experiment is involved, each iteration has to  be performed with the robot in the loop thus we would perform the for loop one at a time. 
-In a Jupyter notebook format, we would do this one iteration at a time, keeping the Kernel active and adding one new cell for each iteration below the previous iteration but performing same set of operations. A more neater approach for this is under the works.
-At any given iteration, the function `get_current_best` reports what the algorithm thinks is a the best match so far.
+Note that when a robotic experiment is involved, each iteration has to be performed with the robot in the loop thus we would perform the for loop one at a time. 
+In a Jupyter Notebook format, we would do this one iteration at a time, keeping the Kernel active and adding one new cell for each iteration below the previous iteration but performing the same set of operations. A more neater approach for this is in the works.
+At any given iteration, the function `get_current_best` reports what the algorithm thinks is the best match so far.
 
 
