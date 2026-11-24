@@ -1,4 +1,7 @@
 # Bayesian Optimization branch for HEAD
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24486065.svg)](https://doi.org/10.5281/zenodo.24486065)
+
 This branch contains code for the Bayesian Optimization part.
 
 We recommend installing the package by following the instructions below.
